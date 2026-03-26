@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# PIV/OAC pre-commit hook
+# Validates staged .md files for vocabulary and reference consistency.
+# Blocks commit on CRÍTICO or ALTO issues.
+#
+# Skip with: git commit --no-verify  (emergency only — register bypass in AuditAgent)
+
+set -euo pipefail
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+
+# Find Python (prefer venv or system) — verify it actually runs
+PYTHON=""
+for candidate in \
+    "$REPO_ROOT/sdk/.venv/Scripts/python.exe" \
+    "$REPO_ROOT/sdk/.venv/bin/python3" \
+    python3 \
+    python \
+    py; do
+    if "$candidate" --version >/dev/null 2>&1; then
+        PYTHON="$candidate"
+        break
+    fi
+done
+
+if [ -z "$PYTHON" ]; then
+    echo "[pre-commit] WARN: Python no encontrado — omitiendo validacion de docs."
+    exit 0
+fi
+
+VALIDATOR="$REPO_ROOT/scripts/validate_docs.py"
+if [ ! -f "$VALIDATOR" ]; then
+    echo "[pre-commit] WARN: validate_docs.py no encontrado — omitiendo validación."
+    exit 0
+fi
+
+# Collect staged .md files
+STAGED_MD=$(git diff --cached --name-only --diff-filter=ACM | grep '\.md$' || true)
+
+if [ -z "$STAGED_MD" ]; then
+    exit 0
+fi
+
+echo "[pre-commit] Validando archivos .md staged..."
+if ! $PYTHON "$VALIDATOR" --staged; then
+    echo "[pre-commit] BLOQUEADO: corrige los issues CRÍTICO/ALTO antes de hacer commit."
+    echo "[pre-commit] Bypass de emergencia: git commit --no-verify"
+    echo "[pre-commit] IMPORTANTE: registrar el bypass en AuditAgent si se usa."
+    exit 1
+fi
+
+exit 0

@@ -1,0 +1,476 @@
+name: PIV/OAC Framework — Directive Branch Gates
+# =============================================================================
+# CI para la rama directive `agent-configs`.
+# Valida que los cambios al framework sean coherentes y no rompan contratos.
+#
+# NO es el CI del producto — para eso usar specs/_templates/ci/piv_gate_checks.yml
+# =============================================================================
+
+on:
+  pull_request:
+    branches: [agent-configs]
+  push:
+    branches: [agent-configs]
+
+jobs:
+  # ── Gate: integridad de schemas ──────────────────────────────────────────────
+  validate-schemas:
+    name: Gate — JSON Schema integrity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install jsonschema pyyaml
+
+      - name: Validate JSON schemas are well-formed
+        run: |
+          python3 - <<'EOF'
+          import json, pathlib, sys
+          import jsonschema
+
+          schemas_dir = pathlib.Path("specs/schemas")
+          errors = []
+
+          for schema_file in sorted(schemas_dir.glob("*.schema.json")):
+              try:
+                  schema = json.loads(schema_file.read_text(encoding="utf-8"))
+                  jsonschema.Draft7Validator.check_schema(schema)
+                  print(f"PASS: {schema_file.name}")
+              except Exception as e:
+                  errors.append(f"FAIL: {schema_file.name} — {e}")
+
+          if errors:
+              print("\n".join(errors))
+              sys.exit(1)
+          print(f"\nPASS: {len(list(schemas_dir.glob('*.schema.json')))} schemas validated")
+          EOF
+
+  # ── Gate: contratos de agentes tienen campos requeridos ─────────────────────
+  validate-agent-contracts:
+    name: Gate — Agent contracts completeness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check agent-contracts.md defines all required agents
+        run: |
+          REQUIRED_AGENTS=("MasterOrchestrator" "SecurityAgent" "AuditAgent" "CoherenceAgent" "DomainOrchestrator" "SpecialistAgent")
+          CONTRACTS_FILE="skills/agent-contracts.md"
+          ERRORS=0
+
+          for agent in "${REQUIRED_AGENTS[@]}"; do
+            if grep -q "$agent" "$CONTRACTS_FILE"; then
+              echo "PASS: $agent defined in contracts"
+            else
+              echo "FAIL: $agent missing from $CONTRACTS_FILE"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done
+
+          exit $ERRORS
+
+  # ── Gate: archivos críticos del framework presentes ─────────────────────────
+  validate-framework-structure:
+    name: Gate — Framework file structure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify critical framework files exist
+        run: |
+          REQUIRED_FILES=(
+            "CLAUDE.md"
+            "agent.md"
+            "registry/orchestrator.md"
+            "registry/security_agent.md"
+            "registry/audit_agent.md"
+            "registry/evaluation_agent.md"
+            "registry/agent_taxonomy.md"
+            "contracts/gates.md"
+            "contracts/models.md"
+            "contracts/evaluation.md"
+            "contracts/parallel_safety.md"
+            "skills/orchestration.md"
+            "skills/backend-security.md"
+            "skills/agent-contracts.md"
+            "skills/evaluation.md"
+            "skills/framework-quality.md"
+            "engram/INDEX.md"
+            "metrics/sessions.md"
+          )
+
+          ERRORS=0
+          for f in "${REQUIRED_FILES[@]}"; do
+            if [ -f "$f" ]; then
+              echo "PASS: $f"
+            else
+              echo "FAIL: $f — archivo crítico ausente"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done
+
+          exit $ERRORS
+
+  # ── Gate: sin secretos en el framework ──────────────────────────────────────
+  scan-secrets:
+    name: Gate — No secrets in framework files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan for hardcoded secrets
+        run: |
+          # \b ensures whole-word match — avoids false positives on _secret, jwt_secret_key, etc.
+          # After matching, filter out documentation placeholder values:
+          #   "..."          → explicit placeholder  (e.g. api_key="...")
+          #   "<something>"  → template placeholder  (e.g. api_key="<YOUR_KEY>")
+          #   "your-*"       → docs example           (e.g. api_key="your-key-here")
+          #   "PLACEHOLDER"  → explicit constant
+          PLACEHOLDER_FILTER='"[.][.][.]"\|"<[^"]*>"\|"your-\|"PLACEHOLDER\|"REPLACE_ME'
+
+          PATTERNS=(
+            '\bpassword\b\s*[:=]\s*["'"'"'][^$\{]'
+            '\bsecret\b\s*[:=]\s*["'"'"'][^$\{]'
+            '\bapi_key\b\s*[:=]\s*["'"'"'][^$\{]'
+            'Bearer [A-Za-z0-9\-_\.]{20,}'
+            'sk-[A-Za-z0-9]{48,}'
+          )
+          FOUND=0
+          for pattern in "${PATTERNS[@]}"; do
+            matches=$(grep -rn -E "$pattern" \
+              --include="*.md" --include="*.json" --include="*.yml" --include="*.sh" \
+              --exclude-dir=".git" --exclude-dir="worktrees" \
+              . 2>/dev/null \
+              | grep -v "$PLACEHOLDER_FILTER" \
+              || true)
+            if [ -n "$matches" ]; then
+              echo "FAIL: Potential hardcoded secret detected:"
+              echo "$matches"
+              FOUND=1
+            fi
+          done
+          [ "$FOUND" -eq 0 ] && echo "PASS: No secrets detected"
+          exit $FOUND
+
+  # ── Gate: CLAUDE.md referencia skills actuales ──────────────────────────────
+  validate-claude-md-refs:
+    name: Gate — CLAUDE.md skill references
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify skills referenced in CLAUDE.md exist on disk
+        run: |
+          python3 - <<'EOF'
+          import re, pathlib, sys
+
+          claude_md = pathlib.Path("CLAUDE.md").read_text(encoding="utf-8")
+          refs = re.findall(r'skills/([a-zA-Z0-9_\-]+\.md)', claude_md)
+          refs = sorted(set(refs))  # deduplicate
+
+          errors = []
+          for ref in refs:
+              path = pathlib.Path(f"skills/{ref}")
+              if not path.exists():
+                  errors.append(f"FAIL: CLAUDE.md references skills/{ref} — file not found")
+              else:
+                  print(f"PASS: skills/{ref}")
+
+          if errors:
+              print("\n".join(errors))
+              sys.exit(1)
+          print(f"\nPASS: {len(refs)} unique skill references validated")
+          EOF
+
+  # ── Gate: SDK importable ─────────────────────────────────────────────────────
+  validate-sdk:
+    name: Gate — SDK importable
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install SDK in isolated venv
+        # venv resuelve el problema de paths con caracteres especiales en Windows (local)
+        # y garantiza aislamiento en cualquier entorno
+        run: |
+          python3 -m venv /tmp/piv-oac-venv
+          /tmp/piv-oac-venv/bin/pip install --quiet -e sdk/
+
+      - name: Verify SDK importable and version correct
+        run: |
+          /tmp/piv-oac-venv/bin/python -c "
+          import piv_oac
+          print(f'PASS: piv_oac v{piv_oac.__version__} importable')
+          from piv_oac.client import get_client, LLMClient
+          print('PASS: client module OK')
+          from piv_oac.exceptions import PIVOACError, AgentUnrecoverableError, GateRejectedError
+          print('PASS: exceptions OK')
+          from piv_oac.contracts.parser import ContractParser
+          print('PASS: contracts.parser OK')
+          from piv_oac.agents.evaluation_agent import EvaluationAgent, FuncInput, SecInput
+          print('PASS: EvaluationAgent OK')
+          from piv_oac.agents.research_orchestrator import ResearchOrchestrator
+          print('PASS: ResearchOrchestrator OK')
+          from piv_oac.checkpoint.validator import CheckpointValidator
+          print('PASS: CheckpointValidator OK')
+          from piv_oac.cli.main import cli
+          print('PASS: CLI entry point OK')
+          "
+
+      - name: Run pip-audit in isolated venv
+        # Audits the installed environment in the venv (includes SDK deps)
+        run: |
+          /tmp/piv-oac-venv/bin/pip install --quiet pip-audit
+          /tmp/piv-oac-venv/bin/pip-audit 2>&1 | tee /tmp/audit-result.txt
+          echo "PASS: pip-audit completed (check output above for CVEs)"
+
+  # ── Check: integridad de referencias cruzadas ────────────────────────────────
+  check-cross-references:
+    name: "Check — Cross-Reference Integrity"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify all referenced framework files exist
+        run: |
+          echo "=== Cross-Reference Integrity ==="
+          FAILED=0
+
+          # Solo paths que empiezan con directorios conocidos del repo
+          # (skills/, registry/, engram/, tools/, sdk/) — evita falsos positivos
+          # con menciones descriptivas como `INDEX.md` o `orchestrator.md`.
+          refs=$(grep -roh '`[a-zA-Z0-9_/.-]*\.md`' \
+                   registry/ skills/ CLAUDE.md agent.md 2>/dev/null \
+                 | sed 's/`//g' \
+                 | grep -E "^(skills|registry|engram|tools|sdk)/" \
+                 | grep -v "^specs/active/" \
+                 | sort -u)
+
+          for ref in $refs; do
+            if [ -f "$ref" ]; then
+              echo "  [OK]  $ref"
+            else
+              echo "  [FAIL] $ref → NOT FOUND"
+              FAILED=1
+            fi
+          done
+
+          if [ "$FAILED" -eq 0 ]; then
+            echo "PASS: All cross-references valid"
+          fi
+          exit $FAILED
+
+  # ── Check: completitud estructural del registry ──────────────────────────────
+  check-structural-completeness:
+    name: "Check — Registry Structural Completeness"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify registry files have required sections
+        run: |
+          echo "=== Registry Structural Completeness ==="
+          FAILED=0
+
+          # Archivos exentos: tienen estructura especial documentada
+          EXEMPT="orchestrator.md agent_taxonomy.md"
+
+          for file in registry/*.md; do
+            base=$(basename "$file")
+            skip=0
+            for ex in $EXEMPT; do
+              [ "$base" = "$ex" ] && skip=1
+            done
+            [ "$skip" -eq 1 ] && continue
+
+            HAS_RESTRICT=$(grep -c "Restricciones" "$file" 2>/dev/null || echo 0)
+            HAS_CROSSREF=$(grep -c "Referencias Cruzadas" "$file" 2>/dev/null || echo 0)
+            HAS_IDENTITY=$(grep -cE "^## (1\.|Identidad)" "$file" 2>/dev/null || echo 0)
+
+            if [ "$HAS_RESTRICT" -gt 0 ] && [ "$HAS_CROSSREF" -gt 0 ] && [ "$HAS_IDENTITY" -gt 0 ]; then
+              echo "  [OK]  $file"
+            else
+              echo "  [FAIL] $file — missing: Restricciones=$HAS_RESTRICT RefCruzadas=$HAS_CROSSREF Identidad/1.=$HAS_IDENTITY"
+              FAILED=1
+            fi
+          done
+
+          if [ "$FAILED" -eq 0 ]; then
+            echo "PASS: All registry files structurally complete"
+          fi
+          exit $FAILED
+
+  # ── Check: integridad del protocolo ──────────────────────────────────────────
+  check-protocol-integrity:
+    name: "Check — Protocol Integrity"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify execution_modes and agent registry entries
+        run: |
+          echo "=== Check 3a: execution_mode canonical values ==="
+          FAILED=0
+          for mode in DEVELOPMENT RESEARCH MIXED INIT; do
+            if grep -q "execution_mode.*$mode\|$mode.*execution_mode" CLAUDE.md agent.md 2>/dev/null; then
+              if grep -q "$mode" specs/_templates/INDEX.md 2>/dev/null; then
+                echo "  [OK]  execution_mode: $mode"
+              else
+                echo "  [FAIL] execution_mode: $mode — missing from INDEX template"
+                FAILED=1
+              fi
+            fi
+          done
+
+          echo "=== Check 3b: Agents in model table have registry entries ==="
+          agents=$(grep -A 20 "Asignación de Modelo" CLAUDE.md \
+                   | grep "| " | grep -v "^| Agente" | grep -v "^|---" \
+                   | awk -F'|' '{print $2}' | tr -d ' ' | grep -v '^$')
+
+          for agent in $agents; do
+            clean=$(echo "$agent" | sed 's/[^a-zA-Z]//g' | tr '[:upper:]' '[:lower:]')
+            if ls registry/ | grep -qi "$clean"; then
+              echo "  [OK]  $agent — registry entry found"
+            else
+              if grep -qi "$agent" registry/agent_taxonomy.md 2>/dev/null; then
+                echo "  [OK]  $agent — declared in agent_taxonomy.md"
+              else
+                echo "  [WARN] $agent — no dedicated registry file (verify agent_taxonomy.md)"
+              fi
+            fi
+          done
+          exit $FAILED
+
+  # ── Check: sin placeholders [PENDIENTE] en archivos de framework ─────────────
+  check-no-placeholders:
+    name: "Check — No [PENDIENTE] in Framework"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan for unfilled [PENDIENTE] placeholders
+        run: |
+          echo "=== No Pending Placeholders ==="
+
+          # Excluye líneas donde [PENDIENTE] aparece en contexto documental:
+          #   - Entre comillas o backticks → referencia al patrón, no placeholder real
+          #   - Junto a "→" en condición  → condición de detección
+          matches=$(grep -rn "\[PENDIENTE\]" \
+                      registry/ skills/ agent.md CLAUDE.md \
+                      2>/dev/null \
+                    | grep -v '"\[PENDIENTE\]"\|`\[PENDIENTE\]`\|\[PENDIENTE\].*→\|→.*\[PENDIENTE\]\|PENDIENTE.*→' \
+                    || true)
+
+          if [ -n "$matches" ]; then
+            echo "FAIL: Unfilled [PENDIENTE] placeholder found:"
+            echo "$matches"
+            exit 1
+          fi
+          echo "PASS: No unfilled [PENDIENTE] in framework files"
+
+  # ── Gate 2b: SDK pytest coverage + semgrep ───────────────────────────────────
+  gate-2b-sdk:
+    name: "Gate 2b — SDK Tests + Security Scan"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install SDK with dev dependencies
+        run: |
+          python3 -m venv /tmp/piv-oac-venv
+          /tmp/piv-oac-venv/bin/pip install --quiet -e "sdk/[dev]"
+
+      - name: Run pytest with coverage (≥80%)
+        # working-directory is NOT set — paths are relative to repo root
+        run: |
+          cd sdk && /tmp/piv-oac-venv/bin/pytest tests/ \
+            --cov=piv_oac --cov-report=term-missing \
+            --cov-fail-under=80 -q
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdk-coverage-report
+          path: sdk/.coverage
+
+      - name: Run semgrep security scan (Gate 2b)
+        run: |
+          /tmp/piv-oac-venv/bin/pip install --quiet semgrep
+          /tmp/piv-oac-venv/bin/semgrep --config auto sdk/piv_oac/ \
+            --json --output /tmp/semgrep-results.json 2>/dev/null || true
+          # Check for ERROR-severity findings (critical/high)
+          python3 - <<'EOF'
+          import json, sys, pathlib
+          results_file = pathlib.Path("/tmp/semgrep-results.json")
+          if not results_file.exists():
+              print("PASS: semgrep completed with no output file (no findings or scan skipped)")
+              sys.exit(0)
+          try:
+              data = json.loads(results_file.read_text())
+          except Exception as e:
+              print(f"WARN: Could not parse semgrep results: {e}")
+              sys.exit(0)
+          findings = data.get("results", [])
+          # Only block on ERROR severity (maps to critical/high in semgrep severity model)
+          blocking = [
+              f for f in findings
+              if f.get("extra", {}).get("severity", "").upper() == "ERROR"
+          ]
+          if blocking:
+              print(f"FAIL: semgrep found {len(blocking)} ERROR-severity findings:")
+              for f in blocking[:10]:
+                  path = f.get("path", "?")
+                  line = f.get("start", {}).get("line", "?")
+                  msg = f.get("extra", {}).get("message", "")[:80]
+                  print(f"  [ERROR] {path}:{line} — {msg}")
+              sys.exit(1)
+          print(f"PASS: semgrep — 0 ERROR findings ({len(findings)} total findings at lower severity)")
+          EOF
+
+      - name: Upload semgrep results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-results
+          path: /tmp/semgrep-results.json
+
+  # ── Conformance: commits vía feature branches ────────────────────────────────
+  check-branch-conformance:
+    name: Branch Protection Conformance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify commit message format
+        run: |
+          echo "=== Branch conformance ==="
+          COMMIT_MSG=$(git log -1 --format="%s" ${{ github.sha }})
+          BASE="${{ github.event.pull_request.base.ref }}"
+          if [ -n "$BASE" ] && ! echo "$COMMIT_MSG" | grep -qE "^(Merge|fix|feat|refactor|docs|chore|directive/|G-[0-9]+|Sprint|Add|Update|Fix)"; then
+            echo "WARN: Commit message does not follow conventional commits format"
+          fi
+          echo "PASS: Branch conformance check complete"

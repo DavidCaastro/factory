@@ -1,0 +1,20 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+exporters:
+  debug:
+    verbosity: normal          # menos ruido en logs ahora que Jaeger tiene la UI
+
+  otlp/jaeger:
+    endpoint: jaeger:4317      # red interna Docker
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [debug, otlp/jaeger]   # → consola Y Jaeger simultáneamente
