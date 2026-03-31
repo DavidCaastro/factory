@@ -1,0 +1,4 @@
+# Este archivo es append-only. No modificar entradas existentes.
+# Escritura: Master Orchestrator en FASE 0 al emitir VETO de intención
+# Formato: una línea JSON por rechazo
+# SHA-256: calculado sobre el objetivo recibido (campo: objective_sha256)

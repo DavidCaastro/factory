@@ -221,3 +221,47 @@ Transiciones:
   GATE_PENDIENTE → COMPLETADA    cuando Security + Audit aprueban
   GATE_PENDIENTE → EN_EJECUCIÓN  cuando gate rechaza (revisión y retry)
 ```
+
+---
+
+## Integración con LogisticsAgent v4.0
+
+### FASE 1 — Post-construcción del DAG
+
+Después de construir el DAG y antes de presentarlo al usuario:
+
+```
+Master Orchestrator tiene el DAG listo
+  └── Activar LogisticsAgent (haiku, presupuesto propio: 3K tokens)
+        └── LogisticsAgent.analyze_dag(dag, specs) → TokenBudgetReport
+              └── Si fragmentation_required en alguna tarea:
+                    → Ajustar número de expertos recomendado en el DAG
+              └── Si WARNING_ANOMALOUS_ESTIMATE:
+                    → Marcar la tarea en el informe para revisión del usuario
+              └── Adjuntar TokenBudgetReport a la presentación del DAG
+```
+
+### Presentación del DAG al usuario — Formato enriquecido
+
+```
+Objetivo: [nombre del objetivo]
+Clasificación: [Nivel 1 / Nivel 2]
+
+DAG de tareas:
+  [diagrama del DAG]
+
+Estimación de recursos (LogisticsAgent):
+  Total estimado: [X] tokens (~$[Y] USD)
+  Distribución por tarea: [tabla TaskBudget]
+  Fragmentación recomendada: [tareas con fragmentation_required=true, si aplica]
+  Warnings: [WARNING_ANOMALOUS_ESTIMATE si aplica, o "Sin anomalías"]
+
+¿Confirmar inicio? [Esperar confirmación humana antes de FASE 2]
+```
+
+### Lo que NO cambia del flujo de orquestación
+
+- El Master sigue siendo el único que construye el DAG
+- La clasificación Nivel 1/2 la hace el Master según CLAUDE.md — LogisticsAgent no la cambia
+- La confirmación humana del DAG sigue siendo obligatoria antes de FASE 2
+- LogisticsAgent no tiene voz en los gates ni en las decisiones de diseño

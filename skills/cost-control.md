@@ -82,3 +82,47 @@ cost:
     haiku_pct: 0
   budget_headroom_pct: 0    # (1 - actual/max) * 100
 ```
+
+---
+
+## Token Caps v4.0 — Presupuesto por Nivel de Tarea
+
+Los siguientes caps son absolutos. El LogisticsAgent no puede superarlos.
+Derivan de la clasificación Nivel 1/2 de CLAUDE.md, no del SDK.
+
+| Nivel de tarea | Cap de tokens | Cuándo aplica |
+|---|---|---|
+| Nivel 1 | 8.000 | Micro-tarea: ≤2 archivos, sin arquitectura nueva, RF documentado |
+| Nivel 2 (≤ 3 archivos) | 40.000 | Tarea simple con pocos archivos afectados |
+| Nivel 2 estándar | 100.000 | Tarea típica del framework |
+| Nivel 2 (≥ 10 archivos) | 200.000 | Tarea compleja, múltiples módulos |
+
+## TokenBudgetReport en la presentación del DAG
+
+El Master Orchestrator incluye el TokenBudgetReport en la presentación al usuario:
+
+```
+Objetivo: [nombre]
+DAG: [N] tareas en [secuencia/paralela]
+
+Estimación de recursos:
+  Total estimado: X tokens (~$Y USD)
+  Tareas con fragmentación recomendada: [lista]
+  Warnings de estimación anómala: [lista o "ninguno"]
+
+¿Aprobar DAG con este presupuesto? [confirmación humana]
+```
+
+## Señales de alerta v4.0
+
+**WARNING_ANOMALOUS_ESTIMATE:** Si LogisticsAgent estima más tokens de los que
+el cap permite, registra el warning en el TokenBudgetReport. El Master lo presenta
+al usuario. No bloquea la ejecución — es una advertencia de scope.
+
+**RealtimeMetrics alertas:**
+- 75% del presupuesto configurado → WARNING al MasterOrchestrator
+- 90% del presupuesto → CRITICAL → presentar al usuario antes de continuar
+
+**Presupuestos independientes (no consumen del pool del objetivo):**
+- LogisticsAgent: 3.000 tokens propios
+- ExecutionAuditor: 5.000 tokens propios
