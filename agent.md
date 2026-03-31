@@ -1,4 +1,4 @@
-# MARCO OPERATIVO PIV/OAC v3.2
+# MARCO OPERATIVO PIV/OAC v4.0
 > **PIV** (Paradigma de Intencionalidad Verificable) + **OAC** (Orquestación Atómica de Contexto)
 
 ## 1. Identidad y Principio Fundamental
@@ -729,7 +729,13 @@ FASE 1: MASTER ORCHESTRATOR (Opus)
   │     Si riesgo no resoluble con código → generar borrador de Documento de Mitigación
   │     El Documento de Mitigación detalla: naturaleza del riesgo, tipo, repercusiones,
   │     vías de mitigación. Será completado por ComplianceAgent en FASE 2.
-  └── Presentar grafo + resumen de compliance al usuario → esperar confirmación
+  ├── [NIVEL 2 OBLIGATORIO] LogisticsAgent.analyze_dag(dag, specs):
+  │     Agent(LogisticsAgent, model=haiku, budget_tokens=3000) — presupuesto propio, fuera del pool
+  │     → Produce TokenBudgetReport (ver registry/logistics_agent.md)
+  │     → Si fragmentation_required en alguna tarea: ajustar número de expertos antes de presentar
+  │     → Si WARNING_ANOMALOUS_ESTIMATE: incluir en presentación al usuario como advertencia
+  │     El Master NO presenta el DAG sin el TokenBudgetReport adjunto cuando es Nivel 2
+  └── Presentar grafo + TokenBudgetReport + resumen de compliance al usuario → esperar confirmación
 
 FASE 2: CREAR ENTORNO DE CONTROL (antes que cualquier experto)
   ├── Tabla de activación — evaluar mecánicamente, sin inferencia:
@@ -749,10 +755,14 @@ FASE 2: CREAR ENTORNO DE CONTROL (antes que cualquier experto)
   │     Solo "NONE" lo omite. Si el valor no está en la tabla → BLOQUEADO, notificar usuario.
   │
   ├── Superagentes OBLIGATORIOS — siempre, en PARALELO REAL:
-  │     Agent(SecurityAgent,  model=opus,   run_in_background=True)
-  │     Agent(AuditAgent,     model=sonnet, run_in_background=True)
-  │     Agent(StandardsAgent, model=sonnet, run_in_background=True)
-  │     Agent(CoherenceAgent, model=sonnet, run_in_background=True)
+  │     Agent(SecurityAgent,    model=opus,   run_in_background=True)
+  │     Agent(AuditAgent,       model=sonnet, run_in_background=True)
+  │     Agent(StandardsAgent,   model=sonnet, run_in_background=True)
+  │     Agent(CoherenceAgent,   model=sonnet, run_in_background=True)
+  │     Agent(ExecutionAuditor, model=haiku,  run_in_background=True, budget_tokens=5000)  ← [NUEVO v4.0]
+  │       ExecutionAuditor: observador out-of-band FASE 2→8. No interviene en gates.
+  │       Genera ExecutionAuditReport siempre, incluso si la ejecución principal falla.
+  │       Ver: registry/execution_auditor.md
   ├── Superagentes CONDICIONALES — lanzar en el mismo mensaje si aplica (usar tabla arriba):
   │     ComplianceAgent → si compliance_scope == "FULL" o == "MINIMAL" (ver tabla):
   │         Agent(ComplianceAgent, model=sonnet, run_in_background=True)
@@ -771,6 +781,9 @@ FASE 4: POR CADA TAREA (en el orden del grafo) — ejecutado por Domain Orchestr
   │     Agent(SecurityAgent.review_plan, run_in_background=True)
   │     Agent(AuditAgent.review_plan,    run_in_background=True)
   │     Agent(CoherenceAgent.review_plan, run_in_background=True)
+  │     CSP (Context Scope Protocol — recomendado): los agentes reciben el artefacto
+  │       filtrado por scope. Artefacto completo disponible por artifact_ref si necesario.
+  │       Ver: skills/context-management.md §CSP y contracts/gates.md §CSP
   │     Esperar los tres → todos deben aprobar → si no: revisar plan → repetir gate
   │     Mientras el gate no aprueba: NINGÚN worktree existe, NINGÚN experto existe.
   │     Si Domain Orchestrator no puede producir plan válido → escalar al Master → notificar usuario.
@@ -829,7 +842,12 @@ FASE 7: GATE FINAL DE PRE-PRODUCCIÓN — coordinado por Master Orchestrator
   └── Sin confirmación humana: staging permanece, nunca se toca main
 
 FASE 8: CIERRE
-  ├── AuditAgent genera 3 logs en /logs_veracidad/ (append-only, SHA-256 al cierre)
+  ├── [PARALELO] ExecutionAuditor.generate_final_report() — corre en paralelo con otros cierres
+  │     Genera ExecutionAuditReport con: total_events, irregularidades, gate_compliance_rate, tokens por agente
+  │     Su reporte es insumo del AuditAgent — no lo sustituye. Corre incluso si ejecución principal falla.
+  │     Ver: registry/execution_auditor.md y metrics/execution_audit_schema.md
+  ├── AuditAgent genera 3 logs en /logs_veracidad/<product-id>/ (append-only, SHA-256 al cierre)
+  │     Usar scripts/fase8_auto.py para generación automática — AuditAgent revisa y aprueba el reporte
   ├── AuditAgent ejecuta Reporte de Conformidad de Protocolo (ver registry/audit_agent.md §7)
   ├── AuditAgent registra métricas en metrics/sessions.md (append-only, solo valores de herramientas)
   ├── AuditAgent recolecta outputs de StandardsAgent + SecurityAgent + ComplianceAgent
@@ -958,3 +976,18 @@ Al completar Gate 3, AuditAgent registra el approach ganador como precedente en 
 - Cada escritura se registra con SHA-256 en `engram/audit/gate_decisions.md`
 - Ningún agente consume precedentes en estado REGISTRADO
 - Protocolo completo: `engram/precedents/README.md`
+
+---
+
+## 20. Comunicación Inter-Agente — PMIA v4.0
+
+Los mensajes entre agentes siguen el Protocolo de Mensaje Inter-Agente (PMIA):
+- Tipos: GATE_VERDICT, ESCALATION, CROSS_ALERT, CHECKPOINT_REQ
+- Máximo 300 tokens por mensaje — sin chain-of-thought
+- Firma HMAC obligatoria (CryptoValidator)
+- Artefactos compartidos por artifact_ref, no por copia directa
+- Retry protocol para MALFORMED_MESSAGE: máx 2 reintentos antes de ESCALATE al Domain Orchestrator
+
+Ver protocolo completo en `skills/inter-agent-protocol.md`.
+
+Las reglas permanentes v4.0 (15 nuevas, incluyendo Sin Bypass de Gate, Factory Exclusiva, Herencia Single-Level, etc.) están listadas en CLAUDE.md §Reglas Permanentes. Este archivo (agent.md) describe su implementación en el flujo de fases.
