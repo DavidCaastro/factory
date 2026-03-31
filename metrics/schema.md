@@ -141,3 +141,38 @@ Nunca inferir métricas de evaluación de la memoria del agente.
 
 ========== FIN OBJETIVO-FRAMEWORK [NOMBRE] ==========
 ```
+
+---
+
+## Métricas de Eficiencia v4.0 (campos adicionales en la entrada de sesión)
+
+### Métricas CSP
+
+| Métrica | Campo | Descripción |
+|---|---|---|
+| CSP filter rate (promedio) | `csp_avg_filter_pct` | Promedio de % del artefacto filtrado en gates. Objetivo: ≥ 25% |
+| CSP filter por gate | `csp_filter_pct_by_gate` | Objeto con filter_pct por cada gate ejecutado |
+
+### Métricas PMIA
+
+| Métrica | Campo | Descripción |
+|---|---|---|
+| Mensajes inter-agente | `pmia_messages_total` | Total de mensajes PMIA en la sesión |
+| Reintentos PMIA | `pmia_retries` | Mensajes que requirieron retry por MALFORMED |
+| Tasa de retry | `pmia_retry_rate` | pmia_retries / total × 100. Objetivo: ≤ 5% |
+
+### Métricas de Tokens (ahora reales, no N/D)
+
+| Métrica | Campo | Descripción |
+|---|---|---|
+| Tokens estimados | `tokens_estimated` | Del TokenBudgetReport de LogisticsAgent |
+| Tokens reales | `tokens_actual` | Del ExecutionAuditReport — siempre real |
+| Eficiencia | `token_efficiency_pct` | (actual/estimado) × 100. Objetivo: ≤ 120% |
+
+### Métricas de Cumplimiento
+
+| Métrica | Campo | Descripción |
+|---|---|---|
+| Gate compliance | `gate_compliance_rate` | % de gates sin irregularidades. Objetivo: 100% |
+| Irregularidades críticas | `critical_irregularities` | Count de CRITICAL. Objetivo: 0 |
+| Eventos de saturación | `context_saturation_events` | VETO_SATURACION emitidos. Objetivo: 0 |

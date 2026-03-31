@@ -44,21 +44,23 @@ VEREDICTO: APROBADO | RECHAZADO
 
 ---
 
-## 3. Protocolo de Escritura Append-Only
+## 3. Protocolo de Escritura — JSONL por Producto
 
-Los archivos de `logs_veracidad/` son registros de veracidad inmutables. El AuditAgent NUNCA sobreescribe un log existente. Las reglas son:
+Los archivos de `logs_veracidad/` son registros de veracidad inmutables.
+Estructura: logs_veracidad/<product-id>/ con 3 archivos JSONL.
 
-1. **Apertura siempre en modo append** — nunca en modo write/overwrite
-2. **Cada sesión añade una sección con separador y timestamp** al inicio:
-   ```
-   ========== SESIÓN [TIMESTAMP] — [RAMA GIT] ==========
-   ```
-3. **Si el archivo no existe** → crearlo con la cabecera de sesión
-4. **Si el archivo existe** → añadir la nueva sección al final
-5. **Prohibido borrar, truncar o reemplazar** líneas de sesiones anteriores
-6. **El hash SHA-256 del archivo** se registra en `engram/audit/gate_decisions.md` al cierre para detectar manipulaciones futuras
+**Convención de product-id:** = objective_id del producto (ej: OBJ-003, axonum-v0.2.0).
+Para objetivos MODO_META usar "framework-<version>" (ej: framework-v4.0).
 
-Esta inmutabilidad es la base de la "veracidad" del sistema. Un log que puede ser reescrito no es un log de auditoría.
+**Reglas:**
+1. Modo siempre APPEND — nunca write/overwrite
+2. Un objeto JSON por línea (JSON Lines format)
+3. Timestamp ISO8601 obligatorio en cada línea
+4. Si el directorio no existe → crearlo antes del primer append
+5. SHA-256 del archivo registrado en engram/audit/gate_decisions.md al cierre
+
+**Automatización disponible:** scripts/fase8_auto.py genera los archivos JSONL
+automáticamente al cierre. AuditAgent revisa y aprueba el reporte — no escribe líneas manualmente.
 
 ---
 

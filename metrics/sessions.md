@@ -62,8 +62,25 @@ Lectura por Master Orchestrator al inicio de FASE 0 para calcular baseline.
 | Archivos únicos / total cargados | X% | Objetivo: ≥70% (baja redundancia) |
 | Fragmentaciones realizadas | X | |
 
+#### Métricas de Eficiencia v4.0
+| Campo | Valor | Objetivo |
+|---|---|---|
+| tokens_estimated | 0 (del TokenBudgetReport) | — |
+| tokens_actual | 0 (del ExecutionAuditReport) | — |
+| token_efficiency_pct | 0% | ≤ 120% |
+| csp_avg_filter_pct | 0% | ≥ 25% |
+| gate_compliance_rate | 100% | 100% |
+| pmia_messages_total | 0 | — |
+| pmia_retries | 0 | — |
+| pmia_retry_rate | 0% | ≤ 5% |
+| context_saturation_events | 0 | 0 |
+| critical_irregularities | 0 | 0 |
+
+> Automatización: `scripts/fase8_auto.py --objective-id <id> --product-id <product>` genera esta sección automáticamente
+> leyendo el ExecutionAuditReport. AuditAgent revisa y aprueba — no escribe manualmente.
+
 #### Incidencias
-- (ninguna) o lista de BLOQUEADA_POR_DISEÑO / INVESTIGACIÓN_REQUERIDA / BLOQUEADO_POR_HERRAMIENTA ocurridas
+- (ninguna) o lista de BLOQUEADA_POR_DISEÑO / INVESTIGACIÓN_REQUERIDA / BLOQUEADO_POR_HERRAMIENTA / irregularidades CRITICAL ocurridas
 
 #### Aprendizajes (AuditAgent)
 - (átomos engram/ según dominio — ver engram/INDEX.md para tabla de acceso por agente)
