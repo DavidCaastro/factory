@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Quality Spec Frontmatter",
+  "description": "Validates the YAML frontmatter of specs/quality.md. StandardsAgent reads these fields at Gate 2 to verify that minimum coverage and lint thresholds are defined before allowing the project to progress.",
+  "type": "object",
+  "required": [
+    "spec_name",
+    "version",
+    "status",
+    "coverage_gate",
+    "lint_gate",
+    "test_framework"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "spec_name": {
+      "type": "string",
+      "description": "Canonical identifier for this spec (e.g. 'quality').",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version of this spec document (e.g. '1.0.0').",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
+    },
+    "status": {
+      "type": "string",
+      "description": "Lifecycle status of this spec.",
+      "enum": ["DRAFT", "ACTIVE", "DEPRECATED"]
+    },
+    "coverage_gate": {
+      "type": "number",
+      "description": "Global minimum test coverage percentage required to pass CI (0–100). Maps to --cov-fail-under in pytest-cov.",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "lint_gate": {
+      "type": "string",
+      "description": "Linting tool enforced in CI. Must be one of the supported PIV/OAC linters.",
+      "enum": ["ruff", "flake8", "eslint"]
+    },
+    "test_framework": {
+      "type": "string",
+      "description": "Primary test framework used by the project (e.g. 'pytest', 'jest', 'vitest').",
+      "minLength": 1
+    },
+    "sca_tool": {
+      "type": "string",
+      "description": "Optional Software Composition Analysis tool used for dependency vulnerability scanning (e.g. 'pip-audit', 'safety', 'npm-audit').",
+      "minLength": 1
+    },
+    "validated": {
+      "type": "boolean",
+      "description": "Whether the frontmatter has been validated by tools/validate-specs.py."
+    },
+    "validated_at": {
+      "type": "string",
+      "description": "ISO 8601 datetime of the last successful validation.",
+      "format": "date-time"
+    }
+  }
+}

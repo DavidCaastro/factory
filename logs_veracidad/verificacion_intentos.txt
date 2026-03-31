@@ -1,0 +1,32 @@
+========== SESIÓN 2026-03-22 — agent-configs — PIV/OAC v3.3 REDESIGN ==========
+OBJETIVO: Redesign arquitectural PIV/OAC v3.2 → v3.3
+
+OBJETIVO-1 (Abstracción/Modularidad — contracts/ layer):
+  Estado: CUMPLIDO
+  Evidencia: contracts/gates.md, contracts/models.md, contracts/evaluation.md, contracts/parallel_safety.md
+
+OBJETIVO-2 (Eliminación duplicación CLAUDE.md/agent.md):
+  Estado: CUMPLIDO
+  Evidencia: CLAUDE.md 356→168 líneas, agent.md absorbió protocolo completo
+
+OBJETIVO-3 (Split registry/security_auditor.md):
+  Estado: CUMPLIDO
+  Evidencia: security_agent.md + audit_agent.md (0 referencias rotas en repositorio)
+
+OBJETIVO-4 (EvaluationAgent + scoring 0-1):
+  Estado: CUMPLIDO
+  Evidencia: registry/evaluation_agent.md, skills/evaluation.md, contracts/evaluation.md
+
+OBJETIVO-5 (Sistema de precedentes):
+  Estado: CUMPLIDO
+  Evidencia: engram/precedents/INDEX.md + README.md, estados REGISTRADO/VALIDADO
+
+OBJETIVO-6 (Audit trail de scoring):
+  Estado: CUMPLIDO
+  Evidencia: logs_scores/README.md, metrics/schema.md sección Evaluación, SHA-256 protocol
+
+OBJETIVO-7 (Determinismo — herramientas antes de LLM):
+  Estado: CUMPLIDO
+  Evidencia: contracts/evaluation.md dimensiones con tool explícito por dimensión
+
+VEREDICTO FINAL: APROBADO

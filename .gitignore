@@ -1,32 +1,80 @@
-# Python
+# ============================================================
+# DIRECTIVA: agent-configs es rama EXCLUSIVA del framework PIV/OAC.
+# Ningún directorio de proyecto/artefacto debe versionarse aquí.
+# Los proyectos viven en su propio repo o en un subdirectorio
+# explícitamente listado abajo bajo "Artefactos de proyecto".
+# ============================================================
+
+# Celdas de trabajo aisladas (Git Worktrees) — nunca versionadas
+worktrees/
+
+# Estado de sesión PIV/OAC — local, no sincronizar con remoto
+.piv/active/
+.piv/completed/
+.piv/failed/
+
+# Variables de entorno y secretos
+.env
+.env.*
+!.env.example
+security_vault.md
+
+# Cobertura y configuración local de herramientas
+.coverage
+
+# Claude Code — solo el archivo local (personal, no portable) queda excluido.
+# settings.json (patrones de permisos genéricos) SÍ se versiona para portabilidad.
+.claude/settings.local.json
+.claude/worktrees/
+
+# Config local auto-detectada por bootstrap.sh — nunca versionar
+.piv/local.env
+
+# Python — caches de herramientas (nunca versionados en el framework)
 __pycache__/
 *.py[cod]
 *.pyo
-*.pyd
-.Python
-env/
-venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
 .venv/
+venv/
+env/
 *.egg-info/
 dist/
 build/
-.eggs/
 
-# Testing
-.coverage
-.pytest_cache/
-htmlcov/
+# Logs de ejecución local (los de veracidad SÍ se versionan en agent-configs)
+*.log
 
 # IDEs
 .vscode/
 .idea/
 *.swp
-*.swo
 
 # OS
 .DS_Store
 Thumbs.db
 
-# PIV/OAC runtime
-.piv/
-worktrees/
+# Engram de proyecto (knowledge específico por proyecto, no del framework)
+engram/projects/
+
+# Specs de proyecto activo — generados por INIT, viven en el repo del proyecto
+# Las plantillas permanecen en specs/_templates/ (versionadas en agent-configs)
+specs/active/
+
+# Claude Code — memoria de proyectos (local, gestionada por Claude Code CLI)
+.claude/projects/
+
+# ============================================================
+# Artefactos de proyecto — directorios de código de producto.
+# Añadir aquí cualquier proyecto que se desarrolle en este repo.
+# Regla: el código de producto NUNCA se commitea en agent-configs.
+# ============================================================
+expense_tracker/
+src/
+src-tauri/
+node_modules/
+# tests/ at repo root = product code, never committed to agent-configs
+# sdk/tests/ is part of the framework SDK and IS versioned
+/tests/

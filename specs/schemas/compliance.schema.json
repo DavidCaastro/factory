@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Compliance Spec Frontmatter",
+  "description": "Validates the YAML frontmatter of specs/compliance.md. ComplianceAgent and the MasterOrchestrator read this at PHASE 0 and Gate 3. The compliance_scope field determines whether full regulatory mapping, minimal documentation, or an explicit opt-out is in effect.",
+  "type": "object",
+  "required": [
+    "spec_name",
+    "version",
+    "status",
+    "compliance_scope",
+    "regulations"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "spec_name": {
+      "type": "string",
+      "description": "Canonical identifier for this spec (e.g. 'compliance').",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version of this spec document (e.g. '1.0.0').",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
+    },
+    "status": {
+      "type": "string",
+      "description": "Lifecycle status of this spec.",
+      "enum": ["DRAFT", "ACTIVE", "DEPRECATED"]
+    },
+    "compliance_scope": {
+      "type": "string",
+      "description": "Scope of compliance obligations for this product. FULL = all applicable regulations must be mapped and evidenced. MINIMAL = only OWASP and licence checks required. NONE = explicit opt-out (must be justified in the spec body).",
+      "enum": ["FULL", "MINIMAL", "NONE"]
+    },
+    "regulations": {
+      "type": "array",
+      "description": "List of regulations or standards applicable to this product (e.g. 'GDPR', 'HIPAA', 'SOC2'). May be empty when compliance_scope is NONE.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "validated": {
+      "type": "boolean",
+      "description": "Whether the frontmatter has been validated by tools/validate-specs.py."
+    },
+    "validated_at": {
+      "type": "string",
+      "description": "ISO 8601 datetime of the last successful validation.",
+      "format": "date-time"
+    }
+  }
+}

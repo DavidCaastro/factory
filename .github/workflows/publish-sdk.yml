@@ -1,0 +1,72 @@
+name: Publish piv-oac SDK to PyPI
+# =============================================================================
+# Se activa manualmente (workflow_dispatch) o cuando se crea un tag v*.*.* en main.
+# Requiere el secret PYPI_API_TOKEN en GitHub Settings → Secrets.
+# =============================================================================
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run — build without publishing'
+        required: false
+        default: 'false'
+        type: boolean
+  push:
+    tags:
+      - 'sdk-v*.*.*'   # ej: sdk-v0.1.0, sdk-v1.0.0
+
+jobs:
+  build-and-publish:
+    name: Build + Publish piv-oac
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write   # requerido para trusted publishing (alternativa a API token)
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: pip install build twine
+
+      - name: Build distribution
+        working-directory: sdk
+        run: python3 -m build
+
+      - name: Verify distribution
+        working-directory: sdk
+        run: |
+          twine check dist/*
+          echo "=== Distribution contents ==="
+          ls -la dist/
+
+      - name: Run SDK smoke test before publish
+        run: |
+          python3 -m venv /tmp/smoke-venv
+          /tmp/smoke-venv/bin/pip install --quiet sdk/dist/*.whl
+          /tmp/smoke-venv/bin/python -c "
+          import piv_oac
+          assert piv_oac.__version__, 'Version not set'
+          from piv_oac.client import get_client
+          from piv_oac.exceptions import PIVOACError
+          print(f'PASS: piv_oac {piv_oac.__version__} smoke test OK')
+          "
+
+      - name: Publish to PyPI
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        working-directory: sdk
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: twine upload dist/*
+
+      - name: Dry run — skip upload
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: echo "DRY RUN — build OK, upload skipped"
