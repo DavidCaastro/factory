@@ -213,3 +213,28 @@ Lectura por Master Orchestrator al inicio de FASE 0 para calcular baseline.
 | Lead time promedio | ~2 sesiones / ~4h | 2 |
 | Fragmentaciones por objetivo | 0 | 2 |
 | Contexto promedio por experto | N/A (OBJ-001: ciclo informal; OBJ-002: MODO_META) | 2 |
+
+### OBJ-003 — framework-v4.0
+
+| Campo | Valor |
+|---|---|
+| Fecha inicio | N/D |
+| Fecha cierre | 2026-03-31 20:01 UTC |
+| execution_mode | DEVELOPMENT |
+| compliance_scope | MINIMAL |
+| Resultado | COMPLETADO |
+
+#### Métricas de Entrega
+| Métrica | Valor |
+|---|---|
+| Tareas completadas | 0/0 |
+| Gate pass rate | Ver gates_completed en estado |
+
+#### Métricas de Costo
+| Campo | Valor |
+|---|---|
+| tokens_input | Ver ExecutionAuditReport |
+| tokens_output | Ver ExecutionAuditReport |
+| usd_actual | Ver ExecutionAuditReport |
+
+---
