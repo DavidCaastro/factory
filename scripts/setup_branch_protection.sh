@@ -118,15 +118,21 @@ if [ "$DRY_RUN" = true ]; then
 fi
 
 # ── Habilitar permiso para que Actions cree PRs ──────────────────────────────
-# Sin este permiso el job request-merge-to-main falla con:
-#   "GitHub Actions is not permitted to create or approve pull requests"
+# Requiere token con scope admin:repo. Si falla (403 desde Codespace o token
+# sin admin), el usuario debe habilitarlo manualmente en GitHub Settings.
 echo "Habilitando permiso Actions → crear PRs..."
-gh api \
+PERM_RESULT=$(gh api \
   --method PUT \
   "/repos/$REPO/actions/permissions/workflow" \
   --field default_workflow_permissions="write" \
-  --field can_approve_pull_request_reviews=true
-echo "DONE: Actions puede crear PRs (can_approve_pull_request_reviews=true)"
+  --field can_approve_pull_request_reviews=true 2>&1) && {
+  echo "DONE: Actions puede crear PRs (can_approve_pull_request_reviews=true)"
+} || {
+  echo "WARN: No se pudo configurar via API (token sin permisos de admin)."
+  echo "      Hazlo manualmente una sola vez:"
+  echo "      Settings → Actions → General → Workflow permissions"
+  echo "      ✓ Allow GitHub Actions to create and approve pull requests → Save"
+}
 echo ""
 
 # ── Aplicar branch protection ────────────────────────────────────────────────
