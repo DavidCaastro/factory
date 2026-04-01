@@ -1,0 +1,17 @@
+{"ts":"2026-03-31T20:06:00Z","session":"OBJ-003","agent":"AuditAgent","event":"RF_VERIFIED","rf_id":"RF-LOG-01","evidence":"registry/logistics_agent.md:§2-§3","verdict":"CUMPLIDO"}
+{"ts":"2026-03-31T20:06:01Z","session":"OBJ-003","agent":"AuditAgent","event":"RF_VERIFIED","rf_id":"RF-LOG-02","evidence":"skills/orchestration.md:§LogisticsAgent v4.0","verdict":"CUMPLIDO"}
+{"ts":"2026-03-31T20:06:02Z","session":"OBJ-003","agent":"AuditAgent","event":"RF_VERIFIED","rf_id":"RF-LOG-03","evidence":"registry/logistics_agent.md:§4 TokenBudgetReport","verdict":"CUMPLIDO"}
+{"ts":"2026-03-31T20:06:03Z","session":"OBJ-003","agent":"AuditAgent","event":"RF_VERIFIED","rf_id":"RF-EXEC-01","evidence":"registry/execution_auditor.md:§1-§3","verdict":"CUMPLIDO"}
+{"ts":"2026-03-31T20:06:04Z","session":"OBJ-003","agent":"AuditAgent","event":"RF_VERIFIED","rf_id":"RF-EXEC-02","evidence":"registry/execution_auditor.md:§5","verdict":"CUMPLIDO"}
+{"ts":"2026-03-31T20:06:05Z","session":"OBJ-003","agent":"AuditAgent","event":"RF_VERIFIED","rf_id":"RF-CSP-01","evidence":"contracts/gates.md:§CSP","verdict":"CUMPLIDO"}
+{"ts":"2026-03-31T20:06:06Z","session":"OBJ-003","agent":"AuditAgent","event":"RF_VERIFIED","rf_id":"RF-CSP-02","evidence":"contracts/gates.md:§Scope Filters Canónicos","verdict":"CUMPLIDO"}
+{"ts":"2026-03-31T20:06:07Z","session":"OBJ-003","agent":"AuditAgent","event":"RF_VERIFIED","rf_id":"RF-CSP-03","evidence":"skills/context-management.md:§CSP v4.0","verdict":"CUMPLIDO"}
+{"ts":"2026-03-31T20:06:08Z","session":"OBJ-003","agent":"AuditAgent","event":"RF_VERIFIED","rf_id":"RF-PMIA-01","evidence":"skills/inter-agent-protocol.md:§2","verdict":"CUMPLIDO"}
+{"ts":"2026-03-31T20:06:09Z","session":"OBJ-003","agent":"AuditAgent","event":"RF_VERIFIED","rf_id":"RF-PMIA-02","evidence":"skills/inter-agent-protocol.md:§4 Retry Protocol","verdict":"CUMPLIDO"}
+{"ts":"2026-03-31T20:06:10Z","session":"OBJ-003","agent":"AuditAgent","event":"RF_VERIFIED","rf_id":"RF-INHERIT-01","evidence":"skills/agent-factory.md:§3 SAFE_INHERIT","verdict":"CUMPLIDO"}
+{"ts":"2026-03-31T20:06:11Z","session":"OBJ-003","agent":"AuditAgent","event":"RF_VERIFIED","rf_id":"RF-INHERIT-02","evidence":"skills/agent-factory.md:§3 Reglas de herencia","verdict":"CUMPLIDO"}
+{"ts":"2026-03-31T20:06:12Z","session":"OBJ-003","agent":"AuditAgent","event":"RF_VERIFIED","rf_id":"RF-SIGN-01","evidence":"skills/agent-factory.md:§4 Code Signing","verdict":"CUMPLIDO"}
+{"ts":"2026-03-31T20:06:13Z","session":"OBJ-003","agent":"AuditAgent","event":"RF_VERIFIED","rf_id":"RF-METRICS-01","evidence":"skills/observability.md:§RealtimeMetrics v4.0","verdict":"CUMPLIDO"}
+{"ts":"2026-03-31T20:06:14Z","session":"OBJ-003","agent":"AuditAgent","event":"RF_VERIFIED","rf_id":"RF-METRICS-02","evidence":"metrics/execution_audit_schema.md","verdict":"CUMPLIDO"}
+{"ts":"2026-03-31T20:06:15Z","session":"OBJ-003","agent":"AuditAgent","event":"RF_VERIFIED","rf_id":"RF-LOGS-01","evidence":"logs_veracidad/README.md:§Estructura","verdict":"CUMPLIDO"}
+{"ts":"2026-03-31T20:06:16Z","session":"OBJ-003","agent":"AuditAgent","event":"RF_VERIFIED","rf_id":"RF-LOGS-02","evidence":"logs_veracidad/README.md:§Schema base","verdict":"CUMPLIDO"}

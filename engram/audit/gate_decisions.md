@@ -21,6 +21,105 @@ ACCIÓN: continuar | revisar plan | escalar usuario
 
 ---
 
+### Sesión 2026-03-31 — OBJ-003 Framework PIV/OAC v4.0
+
+```
+[2026-03-31] GATE: gate_2_T01 | TAREA: feature/T-01-specs | PLAN_VERSION: 1
+VEREDICTO: APROBADO
+AGENTE: AuditAgent
+RAZÓN: —
+ACCIÓN: continuar
+
+[2026-03-31] GATE: gate_2b_T01 | TAREA: feature/T-01-specs | PLAN_VERSION: 1
+VEREDICTO: APROBADO
+AGENTE: AuditAgent
+RAZÓN: —
+ACCIÓN: continuar
+
+[2026-03-31] GATE: gate_2_T02 | TAREA: feature/T-02-registry | PLAN_VERSION: 1
+VEREDICTO: APROBADO
+AGENTE: AuditAgent
+RAZÓN: —
+ACCIÓN: continuar
+
+[2026-03-31] GATE: gate_2b_T02 | TAREA: feature/T-02-registry | PLAN_VERSION: 1
+VEREDICTO: APROBADO
+AGENTE: AuditAgent
+RAZÓN: —
+ACCIÓN: continuar
+
+[2026-03-31] GATE: gate_2_T03 | TAREA: feature/T-03-skills-nuevos | PLAN_VERSION: 1
+VEREDICTO: APROBADO
+AGENTE: AuditAgent
+RAZÓN: —
+ACCIÓN: continuar
+
+[2026-03-31] GATE: gate_2b_T03 | TAREA: feature/T-03-skills-nuevos | PLAN_VERSION: 1
+VEREDICTO: APROBADO
+AGENTE: AuditAgent
+RAZÓN: —
+ACCIÓN: continuar
+
+[2026-03-31] GATE: gate_2_T06 | TAREA: feature/T-06-logs-metrics | PLAN_VERSION: 1
+VEREDICTO: APROBADO
+AGENTE: AuditAgent
+RAZÓN: —
+ACCIÓN: continuar
+
+[2026-03-31] GATE: gate_2b_T06 | TAREA: feature/T-06-logs-metrics | PLAN_VERSION: 1
+VEREDICTO: APROBADO
+AGENTE: AuditAgent
+RAZÓN: —
+ACCIÓN: continuar
+
+[2026-03-31] GATE: gate_1_T04 | TAREA: feature/T-04-skills-update | PLAN_VERSION: 1
+VEREDICTO: APROBADO
+AGENTE: CoherenceAgent
+RAZÓN: —
+ACCIÓN: continuar
+
+[2026-03-31] GATE: gate_2b_T04 | TAREA: feature/T-04-skills-update | PLAN_VERSION: 1
+VEREDICTO: APROBADO
+AGENTE: AuditAgent
+RAZÓN: —
+ACCIÓN: continuar
+
+[2026-03-31] GATE: gate_1_T05 | TAREA: feature/T-05-protocolo-core | PLAN_VERSION: 1
+VEREDICTO: APROBADO
+AGENTE: CoherenceAgent
+RAZÓN: Sin solapamiento CLAUDE.md/agent.md — agent.md es fuente completa, CLAUDE.md referencia por sección
+ACCIÓN: continuar
+
+[2026-03-31] GATE: gate_2b_T05 | TAREA: feature/T-05-protocolo-core | PLAN_VERSION: 1
+VEREDICTO: APROBADO
+AGENTE: AuditAgent
+RAZÓN: —
+ACCIÓN: continuar
+
+[2026-03-31] GATE: gate_2b_T07 | TAREA: feature/T-07-automatizacion | PLAN_VERSION: 1
+VEREDICTO: APROBADO
+AGENTE: AuditAgent
+RAZÓN: —
+ACCIÓN: continuar
+
+[2026-03-31] GATE: gate_2b_T08 | TAREA: feature/T-08-integracion | PLAN_VERSION: 1
+VEREDICTO: APROBADO
+AGENTE: AuditAgent
+RAZÓN: 8/8 checks OK, smoke-tests PASS
+ACCIÓN: continuar a Gate 3
+
+[2026-03-31] GATE: Gate3 | TAREA: framework-v4.0 (staging → main)
+VEREDICTO: APROBADO
+AGENTE: HUMANO (confirmación explícita)
+RAZÓN: —
+ACCIÓN: merge staging → main ejecutado — commit bbc2e36
+```
+
+Gate compliance rate: 1.0 (15/15 gates aprobados, 0 rechazos)
+Known issues: hooks PostToolUse no activos — documentados, no críticos.
+
+---
+
 ### Sesión 2026-03-22 — OBJ-002 Redesign PIV/OAC v3.3
 
 ```

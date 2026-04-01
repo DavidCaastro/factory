@@ -836,10 +836,25 @@ FASE 7: GATE FINAL DE PRE-PRODUCCIÓN — coordinado por Master Orchestrator
   │     ComplianceAgent verifica mitigation_acknowledged: si existe Documento de Mitigación,
   │       leer .piv/active/<objetivo-id>.json → campo mitigation_acknowledged debe ser true
   │       Si false o ausente → BLOQUEADO: re-presentar documento al usuario, solicitar reconocimiento
-  │     Master Orchestrator presenta estado completo al usuario SOLO cuando todos los gates de FASE 7 aprueban
-  ├── [GATE 3 — HUMANO + GATE] Solo con confirmación humana explícita:
-  │     Master Orchestrator ejecuta merge staging → main (responsable: Master Orchestrator)
-  └── Sin confirmación humana: staging permanece, nunca se toca main
+  │
+  ├── [PRE-REQUISITO CI — BLOQUEANTE antes de Gate 3 humano]
+  │     El CI de la rama artifact (GitHub Actions, trigger push→staging) debe ser
+  │       completamente GREEN antes de presentar el Gate 3 al usuario.
+  │     Si algún job falla o está pendiente → BLOQUEADO: Gate 3 no se presenta.
+  │     Aplica a cualquier tipo de producto artefacto (app, servicio, versión de framework).
+  │
+  │     Master Orchestrator presenta estado completo al usuario SOLO cuando:
+  │       (a) todos los gates de agentes de FASE 7 aprueban, Y
+  │       (b) CI de staging es GREEN en su totalidad
+  │
+  ├── [GATE 3 — HUMANO + GATE] Solo con confirmación humana explícita (post CI verde):
+  │     Master Orchestrator abre PR staging → main
+  │     El PR dispara el mismo CI nuevamente (trigger pull_request→main)
+  │     El merge a main solo procede cuando:
+  │       - CI del PR es GREEN, Y
+  │       - gate-source-branch job confirma que origen es staging, Y
+  │       - confirmación humana explícita recibida
+  └── Sin confirmación humana o con CI no verde: staging permanece, main no se toca
 
 FASE 8: CIERRE
   ├── [PARALELO] ExecutionAuditor.generate_final_report() — corre en paralelo con otros cierres
