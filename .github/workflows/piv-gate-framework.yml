@@ -524,26 +524,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check Actions PR permission
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          PERMS=$(gh api "/repos/${{ github.repository }}/actions/permissions/workflow" \
-            --jq '.can_approve_pull_request_reviews' 2>/dev/null || echo "false")
-          if [ "$PERMS" != "true" ]; then
-            echo "FAIL: GitHub Actions no tiene permiso para crear PRs en este repositorio."
-            echo ""
-            echo "Solución (ejecutar una vez):"
-            echo "  ./scripts/setup_branch_protection.sh"
-            echo ""
-            echo "O manualmente en GitHub:"
-            echo "  Settings → Actions → General → Workflow permissions"
-            echo "  ✓ Marcar: 'Allow GitHub Actions to create and approve pull requests'"
-            echo "  → Save"
-            exit 1
-          fi
-          echo "PASS: Permiso de creación de PRs habilitado"
-
       - name: Create or update PR staging → main
         env:
           GH_TOKEN: ${{ github.token }}
