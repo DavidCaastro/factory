@@ -1,7 +1,8 @@
 name: PIV/OAC Gate Checks — Product CI
 # =============================================================================
 # PLANTILLA — Copiar al repo del producto como .github/workflows/piv_gate_checks.yml
-# NO ejecutar en el repo del framework (agent-configs).
+# Aplica a cualquier producto artefacto: aplicación, servicio, versión de framework.
+# NO ejecutar en el repo del framework directivo (agent-configs es inmutable).
 #
 # Antes de usar: reemplazar los marcadores:
 #   {{SRC_DIR}}   → directorio fuente del producto (ej: src, app, backend)
@@ -11,15 +12,40 @@ name: PIV/OAC Gate Checks — Product CI
 #
 # Fuente: agent-configs/specs/_templates/ci/piv_gate_checks.yml
 # Generado por: INIT protocol (ver skills/init.md)
+#
+# Regla de promoción staging → main (invariante para todo producto artefacto):
+#   1. CI verde en staging (push trigger) — bloqueante antes de Gate 3 humano
+#   2. PR staging→main dispara CI nuevamente (pull_request trigger)
+#   3. gate-source-branch bloquea cualquier PR a main que no venga de staging
+#   4. Solo cuando CI del PR es GREEN + confirmación humana → merge a main
 # =============================================================================
 
 on:
-  pull_request:
-    branches: [staging, main]
   push:
     branches: [staging]
+  pull_request:
+    branches: [main]
 
 jobs:
+  # ── Gate: origen del PR a main debe ser staging ─────────────────────────────
+  gate-source-branch:
+    name: Gate — PR to main must come from staging
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify source branch is staging
+        run: |
+          SRC="${{ github.head_ref }}"
+          BASE="${{ github.base_ref }}"
+          echo "PR: $SRC → $BASE"
+          if [ "$BASE" = "main" ] && [ "$SRC" != "staging" ]; then
+            echo "FAIL: Direct merge to main is only allowed from staging."
+            echo "      Source detected: $SRC"
+            echo "      Promote via: feature/<task> → staging → main"
+            exit 1
+          fi
+          echo "PASS: Source branch is staging — promotion path is valid"
+
   gate-security:
     name: Gate 2b — SecurityAgent (deterministic tools)
     runs-on: ubuntu-latest
@@ -113,13 +139,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Verify no direct commits to staging/main
+      - name: Verify commit message format and branch flow
         run: |
-          BASE=${{ github.event.pull_request.base.ref }}
           HEAD=${{ github.sha }}
-          echo "Checking commits from $BASE to $HEAD"
           COMMIT_MSG=$(git log -1 --format="%s" $HEAD)
-          if [[ "$BASE" == "main" ]] && ! echo "$COMMIT_MSG" | grep -q "^Merge"; then
-            echo "WARN: Direct push to main detected — should be merge only"
+          BASE="${{ github.event.pull_request.base.ref }}"
+          echo "=== Branch conformance ==="
+          echo "Base: ${BASE:-staging (push)}"
+          echo "Commit: $COMMIT_MSG"
+          if [ -n "$BASE" ] && ! echo "$COMMIT_MSG" | grep -qE "^(Merge|fix|feat|refactor|docs|chore|release|revert)"; then
+            echo "WARN: Commit message does not follow conventional commits format"
           fi
           echo "PASS: Branch conformance check complete"
