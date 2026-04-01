@@ -49,3 +49,27 @@
 - Durante ejecución: append de cada evento con timestamp
 - FASE 8: generar ExecutionAuditReport y entregarlo al AuditAgent
 - Si error interno: generar reporte parcial con `error` field — nunca propagar excepción
+
+---
+
+## 6. Restricciones
+
+- No puede intervenir en gates ni emitir veredictos de ningún tipo
+- No puede escalar directamente al usuario — solo informa al AuditAgent
+- No puede acceder a `security_vault.md` bajo ninguna circunstancia (Zero-Trust)
+- No puede modificar `logs_veracidad/` ni `metrics/sessions.md` — esos son responsabilidad del AuditAgent
+- No puede superar 5.000 tokens de presupuesto propio — presupuesto fijo, no ampliable
+- No puede fragmentar en sub-agentes (rol de observador puro, sin delegación)
+- Su reporte es insumo del AuditAgent — no lo sustituye ni lo sobreescribe
+
+---
+
+## 7. Referencias Cruzadas
+
+| Archivo | Relación |
+|---|---|
+| `agent.md` | §Protocolo Nivel 2 FASE 2→8 — ciclo de vida del ExecutionAuditor |
+| `registry/audit_agent.md` | AuditAgent — receptor del ExecutionAuditReport en FASE 8 |
+| `metrics/execution_audit_schema.md` | Esquema JSONL del reporte de auditoría de ejecución |
+| `registry/agent_taxonomy.md` | Taxonomía completa — ExecutionAuditor como observador out-of-band |
+| `contracts/gates.md` | Gates monitorizados por el ExecutionAuditor (sin intervención) |

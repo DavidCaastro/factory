@@ -328,9 +328,9 @@ jobs:
             done
             [ "$skip" -eq 1 ] && continue
 
-            HAS_RESTRICT=$(grep -c "Restricciones" "$file" 2>/dev/null || echo 0)
-            HAS_CROSSREF=$(grep -c "Referencias Cruzadas" "$file" 2>/dev/null || echo 0)
-            HAS_IDENTITY=$(grep -cE "^## (1\.|Identidad)" "$file" 2>/dev/null || echo 0)
+            HAS_RESTRICT=$(grep -c "Restricciones" "$file" 2>/dev/null || true)
+            HAS_CROSSREF=$(grep -c "Referencias Cruzadas" "$file" 2>/dev/null || true)
+            HAS_IDENTITY=$(grep -cE "^## (1\.|Identidad)" "$file" 2>/dev/null || true)
 
             if [ "$HAS_RESTRICT" -gt 0 ] && [ "$HAS_CROSSREF" -gt 0 ] && [ "$HAS_IDENTITY" -gt 0 ]; then
               echo "  [OK]  $file"
