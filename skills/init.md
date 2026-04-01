@@ -160,24 +160,59 @@ Solo tras confirmación explícita del usuario Y aprobación de Nivel 0 se escri
 
 `specs/active/research.md` solo se genera si `execution_mode: RESEARCH` o `MIXED`.
 
-### Plantillas de CI — Oferta opcional al cierre de INIT
+### Plantillas de CI — Instalación obligatoria al cierre de INIT
 
-Tras escribir los specs, INIT pregunta al usuario si desea instalar las plantillas de CI en el repo del producto:
+El CI es parte del protocolo de promoción staging→main. No es opcional.
 
-```
-¿Deseas instalar las plantillas de CI en el repo del producto?
-  [S] Sí — copio y personalizo las plantillas con los valores de tu proyecto
-  [N] No — puedes hacerlo manualmente desde specs/_templates/ci/
-```
+Tras escribir los specs, INIT instala el CI automáticamente **sin preguntar** y luego
+informa al usuario los pasos de activación pendientes:
 
-Si el usuario confirma, INIT realiza:
+**Paso 1 — INIT instala los archivos (automático):**
 1. Copiar `specs/_templates/ci/piv_gate_checks.yml` → `.github/workflows/piv_gate_checks.yml`
    Sustituir: `{{SRC_DIR}}`, `{{TEST_DIR}}`, `{{COV_FAIL}}`, `{{PYTHON}}` con valores de `specs/active/`
 2. Copiar `specs/_templates/ci/pre-commit-config.yaml` → `.pre-commit-config.yaml`
    Sustituir: `{{SRC_DIR}}` con el directorio fuente declarado en `specs/active/architecture.md`
+3. Copiar `scripts/setup_branch_protection.sh` al repo del producto
 
 **Regla:** INIT sustituye los marcadores `{{...}}` con valores reales antes de escribir.
 Los archivos CI resultantes NO deben contener marcadores sin sustituir.
+
+**Paso 2 — Activación de branch protection (requiere acción humana una sola vez):**
+
+El workflow YML define cuándo corre el CI, pero sin branch protection rules GitHub
+permite merges aunque el CI falle. El enforcement real requiere configurar GitHub:
+
+```
+# Opción A — Script automatizado (recomendado):
+chmod +x scripts/setup_branch_protection.sh
+./scripts/setup_branch_protection.sh
+
+# Opción B — Manual en GitHub Settings:
+Settings → Branches → Branch protection rules → Add rule → main
+  ✓ Require a pull request before merging
+  ✓ Require status checks to pass before merging
+    → Agregar checks: gate-source-branch, gate-security, gate-standards, gate-conformance
+  ✓ Require branches to be up to date before merging
+  ✓ Do not allow bypassing the above settings
+```
+
+**INIT informa al usuario al finalizar:**
+```
+CI instalado. Para que el gate staging→main sea efectivo, ejecuta UNA VEZ:
+
+  ./scripts/setup_branch_protection.sh
+
+Esto configura GitHub para bloquear merges a main si:
+  · El CI no está verde
+  · El PR no viene de staging
+  · Hay push directo a main
+
+Sin este paso, el CI corre pero no bloquea nada.
+```
+
+**Gate de source branch incluido (no negociable):**
+El job `gate-source-branch` en el workflow bloquea PRs a `main` que no vengan de `staging`.
+INIT no puede omitirlo ni el usuario puede desactivarlo — es parte invariante del protocolo.
 
 ---
 
