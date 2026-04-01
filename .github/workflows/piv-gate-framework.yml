@@ -528,6 +528,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # Si staging no tiene commits adelante de main, no hay nada que mergear
+          AHEAD=$(git rev-list --count origin/main..HEAD 2>/dev/null || echo "0")
+          if [ "$AHEAD" -eq 0 ]; then
+            echo "INFO: staging está al mismo nivel que main — no hay commits nuevos."
+            echo "SKIP: PR no necesario."
+            exit 0
+          fi
+
           EXISTING=$(gh pr list \
             --head staging \
             --base main \
