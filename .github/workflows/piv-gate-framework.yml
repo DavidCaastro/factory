@@ -1,18 +1,48 @@
-name: PIV/OAC Framework — Directive Branch Gates
+name: PIV/OAC — Artifact Branch Gates (staging → main)
 # =============================================================================
-# CI para la rama directive `agent-configs`.
-# Valida que los cambios al framework sean coherentes y no rompan contratos.
+# CI para ramas artefacto del producto activo.
+# Aplica independientemente de si el producto es una aplicación o una versión
+# del framework. La rama agent-configs es inmutable y no participa en este CI.
 #
-# NO es el CI del producto — para eso usar specs/_templates/ci/piv_gate_checks.yml
+# Triggers:
+#   push → staging         : corre todos los gates al integrar trabajo
+#   pull_request → main    : corre todos los gates + valida que origen sea staging
+#
+# Regla de promoción:
+#   staging → main ÚNICAMENTE cuando:
+#     1. Todos los jobs de este workflow son GREEN en staging (push trigger)
+#     2. Todos los jobs son GREEN en el PR staging→main (pull_request trigger)
+#     3. Confirmación humana explícita (merge manual — Gate 3)
+#
+# El humano NUNCA confirma el merge a main antes de que este CI sea completamente verde.
 # =============================================================================
 
 on:
-  pull_request:
-    branches: [agent-configs]
   push:
-    branches: [agent-configs]
+    branches: [staging]
+  pull_request:
+    branches: [main]
 
 jobs:
+  # ── Gate: origen del PR a main debe ser staging ─────────────────────────────
+  gate-source-branch:
+    name: Gate — PR to main must come from staging
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify source branch is staging
+        run: |
+          SRC="${{ github.head_ref }}"
+          BASE="${{ github.base_ref }}"
+          echo "PR: $SRC → $BASE"
+          if [ "$BASE" = "main" ] && [ "$SRC" != "staging" ]; then
+            echo "FAIL: Direct merge to main is only allowed from staging."
+            echo "      Source detected: $SRC"
+            echo "      Promote via: feature/<task> → staging → main"
+            exit 1
+          fi
+          echo "PASS: Source branch is staging — promotion path is valid"
+
   # ── Gate: integridad de schemas ──────────────────────────────────────────────
   validate-schemas:
     name: Gate — JSON Schema integrity
@@ -35,9 +65,17 @@ jobs:
           import jsonschema
 
           schemas_dir = pathlib.Path("specs/schemas")
-          errors = []
+          if not schemas_dir.exists():
+              print("INFO: specs/schemas/ not present — skipping schema validation")
+              sys.exit(0)
 
-          for schema_file in sorted(schemas_dir.glob("*.schema.json")):
+          errors = []
+          schema_files = sorted(schemas_dir.glob("*.schema.json"))
+          if not schema_files:
+              print("INFO: No *.schema.json files found — skipping")
+              sys.exit(0)
+
+          for schema_file in schema_files:
               try:
                   schema = json.loads(schema_file.read_text(encoding="utf-8"))
                   jsonschema.Draft7Validator.check_schema(schema)
@@ -48,7 +86,7 @@ jobs:
           if errors:
               print("\n".join(errors))
               sys.exit(1)
-          print(f"\nPASS: {len(list(schemas_dir.glob('*.schema.json')))} schemas validated")
+          print(f"\nPASS: {len(schema_files)} schemas validated")
           EOF
 
   # ── Gate: contratos de agentes tienen campos requeridos ─────────────────────
@@ -60,8 +98,12 @@ jobs:
 
       - name: Check agent-contracts.md defines all required agents
         run: |
-          REQUIRED_AGENTS=("MasterOrchestrator" "SecurityAgent" "AuditAgent" "CoherenceAgent" "DomainOrchestrator" "SpecialistAgent")
           CONTRACTS_FILE="skills/agent-contracts.md"
+          if [ ! -f "$CONTRACTS_FILE" ]; then
+            echo "INFO: $CONTRACTS_FILE not present — skipping"
+            exit 0
+          fi
+          REQUIRED_AGENTS=("MasterOrchestrator" "SecurityAgent" "AuditAgent" "CoherenceAgent" "DomainOrchestrator" "SpecialistAgent")
           ERRORS=0
 
           for agent in "${REQUIRED_AGENTS[@]}"; do
@@ -126,12 +168,6 @@ jobs:
 
       - name: Scan for hardcoded secrets
         run: |
-          # \b ensures whole-word match — avoids false positives on _secret, jwt_secret_key, etc.
-          # After matching, filter out documentation placeholder values:
-          #   "..."          → explicit placeholder  (e.g. api_key="...")
-          #   "<something>"  → template placeholder  (e.g. api_key="<YOUR_KEY>")
-          #   "your-*"       → docs example           (e.g. api_key="your-key-here")
-          #   "PLACEHOLDER"  → explicit constant
           PLACEHOLDER_FILTER='"[.][.][.]"\|"<[^"]*>"\|"your-\|"PLACEHOLDER\|"REPLACE_ME'
 
           PATTERNS=(
@@ -177,7 +213,7 @@ jobs:
 
           claude_md = pathlib.Path("CLAUDE.md").read_text(encoding="utf-8")
           refs = re.findall(r'skills/([a-zA-Z0-9_\-]+\.md)', claude_md)
-          refs = sorted(set(refs))  # deduplicate
+          refs = sorted(set(refs))
 
           errors = []
           for ref in refs:
@@ -206,8 +242,6 @@ jobs:
           python-version: "3.12"
 
       - name: Install SDK in isolated venv
-        # venv resuelve el problema de paths con caracteres especiales en Windows (local)
-        # y garantiza aislamiento en cualquier entorno
         run: |
           python3 -m venv /tmp/piv-oac-venv
           /tmp/piv-oac-venv/bin/pip install --quiet -e sdk/
@@ -234,7 +268,6 @@ jobs:
           "
 
       - name: Run pip-audit in isolated venv
-        # Audits the installed environment in the venv (includes SDK deps)
         run: |
           /tmp/piv-oac-venv/bin/pip install --quiet pip-audit
           /tmp/piv-oac-venv/bin/pip-audit 2>&1 | tee /tmp/audit-result.txt
@@ -252,9 +285,6 @@ jobs:
           echo "=== Cross-Reference Integrity ==="
           FAILED=0
 
-          # Solo paths que empiezan con directorios conocidos del repo
-          # (skills/, registry/, engram/, tools/, sdk/) — evita falsos positivos
-          # con menciones descriptivas como `INDEX.md` o `orchestrator.md`.
           refs=$(grep -roh '`[a-zA-Z0-9_/.-]*\.md`' \
                    registry/ skills/ CLAUDE.md agent.md 2>/dev/null \
                  | sed 's/`//g' \
@@ -288,7 +318,6 @@ jobs:
           echo "=== Registry Structural Completeness ==="
           FAILED=0
 
-          # Archivos exentos: tienen estructura especial documentada
           EXEMPT="orchestrator.md agent_taxonomy.md"
 
           for file in registry/*.md; do
@@ -368,9 +397,6 @@ jobs:
         run: |
           echo "=== No Pending Placeholders ==="
 
-          # Excluye líneas donde [PENDIENTE] aparece en contexto documental:
-          #   - Entre comillas o backticks → referencia al patrón, no placeholder real
-          #   - Junto a "→" en condición  → condición de detección
           matches=$(grep -rn "\[PENDIENTE\]" \
                       registry/ skills/ agent.md CLAUDE.md \
                       2>/dev/null \
@@ -402,7 +428,6 @@ jobs:
           /tmp/piv-oac-venv/bin/pip install --quiet -e "sdk/[dev]"
 
       - name: Run pytest with coverage (≥80%)
-        # working-directory is NOT set — paths are relative to repo root
         run: |
           cd sdk && /tmp/piv-oac-venv/bin/pytest tests/ \
             --cov=piv_oac --cov-report=term-missing \
@@ -420,7 +445,6 @@ jobs:
           /tmp/piv-oac-venv/bin/pip install --quiet semgrep
           /tmp/piv-oac-venv/bin/semgrep --config auto sdk/piv_oac/ \
             --json --output /tmp/semgrep-results.json 2>/dev/null || true
-          # Check for ERROR-severity findings (critical/high)
           python3 - <<'EOF'
           import json, sys, pathlib
           results_file = pathlib.Path("/tmp/semgrep-results.json")
@@ -433,7 +457,6 @@ jobs:
               print(f"WARN: Could not parse semgrep results: {e}")
               sys.exit(0)
           findings = data.get("results", [])
-          # Only block on ERROR severity (maps to critical/high in semgrep severity model)
           blocking = [
               f for f in findings
               if f.get("extra", {}).get("severity", "").upper() == "ERROR"
