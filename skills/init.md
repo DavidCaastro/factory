@@ -160,7 +160,7 @@ Solo tras confirmación explícita del usuario Y aprobación de Nivel 0 se escri
 
 `specs/active/research.md` solo se genera si `execution_mode: RESEARCH` o `MIXED`.
 
-### Plantillas de CI — Oferta opcional al cierre de INIT
+### Plantillas de CI — Oferta obligatoria al cierre de INIT
 
 Tras escribir los specs, INIT pregunta al usuario si desea instalar las plantillas de CI en el repo del producto:
 
@@ -178,6 +178,28 @@ Si el usuario confirma, INIT realiza:
 
 **Regla:** INIT sustituye los marcadores `{{...}}` con valores reales antes de escribir.
 Los archivos CI resultantes NO deben contener marcadores sin sustituir.
+
+**Gate de staging incluido en la plantilla (invariante — no negociable):**
+El CI instalado por INIT incluye el job `gate-source-branch` que bloquea merges directos
+a `main` que no vengan de `staging`. Este gate aplica a cualquier tipo de producto artefacto.
+INIT no puede omitirlo ni desactivarlo aunque el usuario lo solicite — es parte del protocolo
+de promoción staging→main del framework PIV/OAC.
+
+**Qué debe informar INIT al instalar el CI:**
+```
+CI instalado en .github/workflows/piv_gate_checks.yml
+
+Comportamiento garantizado:
+  · push → staging   : corre todos los gates (CI debe ser verde antes de Gate 3)
+  · PR staging→main  : re-corre todos los gates + valida origen
+  · PR directo a main desde otra rama → bloqueado automáticamente
+
+Para activar la protección de ramas en GitHub:
+  Settings → Branches → Branch protection rules → main
+    ✓ Require status checks to pass before merging
+    ✓ Require branches to be up to date before merging
+    Status checks requeridos: gate-source-branch, gate-security, gate-standards
+```
 
 ---
 
