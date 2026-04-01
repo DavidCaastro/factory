@@ -90,6 +90,25 @@
 > Ejecutar `pip-audit` antes de Gate 2b. Resultado esperado: 0 CVEs críticos/altos.
 > Las dependencias opcionales (redis, opentelemetry) no introducen CVEs en el path default.
 
+## Dependencias Prohibidas — Denylist Permanente
+
+Las siguientes dependencias están **permanentemente prohibidas** en cualquier componente del sistema.
+Su presencia en `requirements.txt`, `pyproject.toml` o cualquier import es motivo de rechazo
+automático en Gate 2b sin posibilidad de mitigación ni excepción.
+
+| Paquete | Razón | Alternativa |
+|---|---|---|
+| `litellm` | Vulnerabilidad de seguridad — jamas utilizable en este sistema | `anthropic` SDK directo |
+
+**Verificación obligatoria en Gate 2b (SecurityAgent):**
+```bash
+# Detectar dependencias prohibidas en requirements y código fuente
+grep -rn "litellm" requirements*.txt pyproject.toml sdk/ 2>/dev/null && echo "FAIL: dependencia prohibida detectada" && exit 1 || echo "PASS: sin dependencias prohibidas"
+```
+
+> SecurityAgent ejecuta esta verificación con herramientas determinísticas antes de cualquier análisis LLM.
+> Un hallazgo positivo es rechazo automático — no hay veredicto alternativo.
+
 ---
 
 ## Verificaciones Obligatorias en Gate 2b — SecurityAgent

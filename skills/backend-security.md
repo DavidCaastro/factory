@@ -345,12 +345,26 @@ pip audit --fix                  # Modo interactivo para actualizar paquetes vul
 | `python-multipart < 0.0.7` | DoS en parsing | Actualizar a `>= 0.0.7` |
 | `starlette < 0.36.2` | Path traversal | Actualizar vía `fastapi` |
 
+**Denylist permanente — rechazo automático sin excepción:**
+
+| Paquete | Estado | Alternativa |
+|---|---|---|
+| `litellm` | PROHIBIDO — vulnerabilidad de seguridad | `anthropic` SDK directo |
+
+```bash
+# Verificación obligatoria Gate 2b — SecurityAgent
+grep -rn "litellm" requirements*.txt pyproject.toml sdk/ 2>/dev/null \
+  && echo "FAIL: dependencia prohibida detectada" && exit 1 \
+  || echo "PASS: sin dependencias prohibidas"
+```
+
 **Checklist SCA:**
 - [ ] `requirements.txt` incluido en el scope de auditoría
 - [ ] `requirements-test.txt` incluido en el scope de auditoría
 - [ ] `pip audit` ejecutado y sin hallazgos críticos o altos sin justificación
 - [ ] Cada dependencia de terceros evaluada: CVEs + actividad de mantenimiento
 - [ ] Ninguna dependencia con CVE activo sin mitigación documentada
+- [ ] Ninguna dependencia de la denylist permanente presente en el proyecto
 
 ---
 
