@@ -117,6 +117,18 @@ if [ "$DRY_RUN" = true ]; then
   exit 0
 fi
 
+# ── Habilitar permiso para que Actions cree PRs ──────────────────────────────
+# Sin este permiso el job request-merge-to-main falla con:
+#   "GitHub Actions is not permitted to create or approve pull requests"
+echo "Habilitando permiso Actions → crear PRs..."
+gh api \
+  --method PUT \
+  "/repos/$REPO/actions/permissions/workflow" \
+  --field default_workflow_permissions="write" \
+  --field can_approve_pull_request_reviews=true
+echo "DONE: Actions puede crear PRs (can_approve_pull_request_reviews=true)"
+echo ""
+
 # ── Aplicar branch protection ────────────────────────────────────────────────
 echo "Aplicando branch protection en main..."
 gh api \
@@ -125,12 +137,14 @@ gh api \
   --input - <<< "$PAYLOAD"
 
 echo ""
-echo "DONE: Branch protection configurada en main."
+echo "DONE: Configuración completa."
 echo ""
 echo "Reglas activas:"
 echo "  · push directo a main: BLOQUEADO"
 echo "  · PR a main sin CI verde: BLOQUEADO"
 echo "  · PR a main que no venga de staging: BLOQUEADO (gate-source-branch)"
+echo "  · Actions puede crear PRs staging→main automáticamente"
 echo ""
 echo "Para verificar:"
 echo "  gh api /repos/$REPO/branches/main/protection | python3 -m json.tool"
+echo "  gh api /repos/$REPO/actions/permissions/workflow"
