@@ -151,3 +151,65 @@ jobs:
             echo "WARN: Commit message does not follow conventional commits format"
           fi
           echo "PASS: Branch conformance check complete"
+
+  # ── Solicitud de merge staging → main (solo cuando CI de staging es verde) ──
+  request-merge-to-main:
+    name: Gate 3 — Request merge staging → main
+    if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
+    needs:
+      - gate-source-branch
+      - gate-security
+      - gate-standards
+      - gate-conformance
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create or update PR staging → main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          EXISTING=$(gh pr list \
+            --head staging \
+            --base main \
+            --state open \
+            --json number,url \
+            --jq '.[0]' 2>/dev/null || echo "")
+
+          COMMIT_MSG=$(git log -1 --format="%s" ${{ github.sha }})
+          COMMIT_SHA="${{ github.sha }}"
+          SHORT_SHA="${COMMIT_SHA:0:7}"
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          PR_BODY="## Gate 3 — Solicitud de merge staging → main
+
+          **CI de staging:** ✅ completamente verde
+          **Commit:** \`$SHORT_SHA\` — $COMMIT_MSG
+          **Run:** $RUN_URL
+
+          ### Checklist Gate 3 (confirmación humana requerida)
+          - [ ] Revisión integral de staging completada
+          - [ ] Documento de mitigación reconocido (si aplica)
+          - [ ] Confirmación explícita de que el objetivo está listo para producción
+
+          > Merge permitido solo tras confirmar todos los items anteriores.
+          > El CI correrá nuevamente al abrir este PR — debe permanecer verde."
+
+          if [ -z "$EXISTING" ] || [ "$EXISTING" = "null" ]; then
+            gh pr create \
+              --head staging \
+              --base main \
+              --title "release: staging → main [$SHORT_SHA]" \
+              --body "$PR_BODY"
+            echo "PASS: PR creado — Gate 3 listo para confirmación humana"
+          else
+            PR_NUM=$(echo "$EXISTING" | python3 -c "import json,sys; print(json.load(sys.stdin)['number'])")
+            PR_URL=$(echo "$EXISTING" | python3 -c "import json,sys; print(json.load(sys.stdin)['url'])")
+            gh pr edit "$PR_NUM" --body "$PR_BODY"
+            echo "PASS: PR #$PR_NUM actualizado ($PR_URL) — Gate 3 listo para confirmación humana"
+          fi
