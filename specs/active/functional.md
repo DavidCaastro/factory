@@ -2,7 +2,7 @@
 
 > Marco directivo de gobernanza de agentes LLM.
 > Este documento define los Requisitos Funcionales (RFs) del framework v4.0.
-> Estado: EN_EJECUCION — objetivo OBJ-003
+> Estado: COMPLETADO — OBJ-003 entregado 2026-03-31 | Gate 3 APROBADO | commit bbc2e36
 
 ---
 
@@ -12,8 +12,8 @@
 |---|---|
 | Versión | v4.0 |
 | Prioridad | ALTA |
-| Estado | PENDIENTE |
-| Evidencia | — |
+| Estado | COMPLETADO |
+| Evidencia | commit bbc2e36 — Gate 3 APROBADO 2026-03-31 |
 
 **Descripción:** LogisticsAgent es un agente de análisis proactivo de recursos que se activa en FASE 1 (post-DAG, pre-presentación al usuario). Produce un `TokenBudgetReport` antes de que el Master presente el DAG al usuario. Usa el modelo claude-haiku-4-5. Tiene un presupuesto propio de 3.000 tokens, fuera del pool del objetivo.
 
@@ -36,8 +36,8 @@
 |---|---|
 | Versión | v4.0 |
 | Prioridad | ALTA |
-| Estado | PENDIENTE |
-| Evidencia | — |
+| Estado | COMPLETADO |
+| Evidencia | commit bbc2e36 — Gate 3 APROBADO 2026-03-31 |
 
 **Descripción:** El TokenBudgetReport generado por LogisticsAgent se incluye obligatoriamente en la presentación del DAG al usuario cuando el objetivo es Nivel 2. El Master Orchestrator no presenta el DAG sin el informe adjunto en objetivos Nivel 2.
 
@@ -51,8 +51,8 @@
 |---|---|
 | Versión | v4.0 |
 | Prioridad | MEDIA |
-| Estado | PENDIENTE |
-| Evidencia | — |
+| Estado | COMPLETADO |
+| Evidencia | commit bbc2e36 — Gate 3 APROBADO 2026-03-31 |
 
 **Descripción:** Cuando la estimación de LogisticsAgent supera el cap del nivel correspondiente, el informe registra un `WARNING_ANOMALOUS_ESTIMATE`. El Master presenta este warning al usuario antes de continuar. El warning no bloquea la ejecución — es una advertencia de scope.
 
@@ -66,8 +66,8 @@
 |---|---|
 | Versión | v4.0 |
 | Prioridad | ALTA |
-| Estado | PENDIENTE |
-| Evidencia | — |
+| Estado | COMPLETADO |
+| Evidencia | commit bbc2e36 — Gate 3 APROBADO 2026-03-31 |
 
 **Descripción:** ExecutionAuditor es un observador pasivo activo desde FASE 2 hasta FASE 8. No emite veredictos de gate. No interviene en el flujo de ejecución. Solo observa y registra. Detecta las siguientes irregularidades: `GATE_SKIPPED`, `GATE_BYPASSED`, `PROTOCOL_DEVIATION`, `TOKEN_OVERRUN`, `CONTEXT_SATURATION`, `UNAUTHORIZED_INSTANTIATION`. Usa claude-haiku-4-5 con presupuesto propio de 5.000 tokens.
 
@@ -81,8 +81,8 @@
 |---|---|
 | Versión | v4.0 |
 | Prioridad | ALTA |
-| Estado | PENDIENTE |
-| Evidencia | — |
+| Estado | COMPLETADO |
+| Evidencia | commit bbc2e36 — Gate 3 APROBADO 2026-03-31 |
 
 **Descripción:** ExecutionAuditor genera su reporte final (`ExecutionAuditReport`) siempre al cierre, incluso si la ejecución principal falla. Su reporte es insumo del AuditAgent en FASE 8, no sustituto. Si ocurre un error interno del auditor, genera un reporte parcial con campo `error` — nunca propaga la excepción.
 
@@ -96,8 +96,8 @@
 |---|---|
 | Versión | v4.0 |
 | Prioridad | MEDIA |
-| Estado | PENDIENTE |
-| Evidencia | — |
+| Estado | COMPLETADO |
+| Evidencia | commit bbc2e36 — Gate 3 APROBADO 2026-03-31 |
 
 **Descripción:** En gates con múltiples agentes revisando el mismo artefacto, el artefacto se almacena una sola vez en StateStore (genera `artifact_ref`). Cada agente recibe solo el scope filtrado según su checklist definido en `contracts/gates.md`. El agente puede solicitar contexto adicional vía `artifact_ref` si lo necesita.
 
@@ -111,8 +111,8 @@
 |---|---|
 | Versión | v4.0 |
 | Prioridad | MEDIA |
-| Estado | PENDIENTE |
-| Evidencia | — |
+| Estado | COMPLETADO |
+| Evidencia | commit bbc2e36 — Gate 3 APROBADO 2026-03-31 |
 
 **Descripción:** Los scope filters canónicos por agente son: SecurityAgent = [auth, crypto, secrets, input_validation, permissions]; AuditAgent = [business_logic, tests, rf_coverage]; StandardsAgent = [tests, docstrings, imports, linting]. Estos filtros se definen en `contracts/gates.md`. Un agente puede solicitar más contexto vía `artifact_ref` si su scope filtrado es insuficiente.
 
@@ -126,8 +126,8 @@
 |---|---|
 | Versión | v4.0 |
 | Prioridad | MEDIA |
-| Estado | PENDIENTE |
-| Evidencia | — |
+| Estado | COMPLETADO |
+| Evidencia | commit bbc2e36 — Gate 3 APROBADO 2026-03-31 |
 
 **Descripción:** El razonamiento (chain of thought) de un agente de gate es in-agent — no viaja en los mensajes inter-agente. Solo viaja el veredicto estructurado definido en `contracts/gates.md`. Reducción estimada de tokens en gates: 30-50% vs enviar razonamiento completo.
 
@@ -141,8 +141,8 @@
 |---|---|
 | Versión | v4.0 |
 | Prioridad | ALTA |
-| Estado | PENDIENTE |
-| Evidencia | — |
+| Estado | COMPLETADO |
+| Evidencia | commit bbc2e36 — Gate 3 APROBADO 2026-03-31 |
 
 **Descripción:** Los mensajes entre agentes siguen el PMIA con 4 tipos: `GATE_VERDICT`, `ESCALATION`, `CROSS_ALERT`, `CHECKPOINT_REQ`. Máximo 300 tokens por mensaje. Sin chain-of-thought. Firma HMAC obligatoria. El contenido compartido viaja por `artifact_ref`, no por copia directa.
 
@@ -156,8 +156,8 @@
 |---|---|
 | Versión | v4.0 |
 | Prioridad | MEDIA |
-| Estado | PENDIENTE |
-| Evidencia | — |
+| Estado | COMPLETADO |
+| Evidencia | commit bbc2e36 — Gate 3 APROBADO 2026-03-31 |
 
 **Descripción:** El receptor valida la estructura del mensaje. Si detecta `MALFORMED_MESSAGE`: retorna el error al emisor, que reformatea y reenvía (máximo 2 reintentos). Si falla tras 2 reintentos: `ESCALATE` al Domain Orchestrator que coordina la comunicación. Máximo 2 reintentos para `MALFORMED_MESSAGE` (la regla de 3 reintentos con backoff aplica solo a `MessageExpired`).
 
@@ -171,8 +171,8 @@
 |---|---|
 | Versión | v4.0 |
 | Prioridad | ALTA |
-| Estado | PENDIENTE |
-| Evidencia | — |
+| Estado | COMPLETADO |
+| Evidencia | commit bbc2e36 — Gate 3 APROBADO 2026-03-31 |
 
 **Descripción:** Solo 5 atributos pueden heredarse de agente padre a hijo (SAFE_INHERIT): `objective_id`, `task_scope`, `execution_mode`, `compliance_scope`, `parent_agent_id`. Todo lo demás (permisos, credenciales, api_keys, capabilities) NO se hereda. Los permisos del hijo los asigna PermissionStore, nunca el padre. Profundidad máxima de herencia: 1 nivel (solo padre → hijo, sin cadenas recursivas).
 
@@ -186,8 +186,8 @@
 |---|---|
 | Versión | v4.0 |
 | Prioridad | ALTA |
-| Estado | PENDIENTE |
-| Evidencia | — |
+| Estado | COMPLETADO |
+| Evidencia | commit bbc2e36 — Gate 3 APROBADO 2026-03-31 |
 
 **Descripción:** El snapshot de contexto heredado tiene TTL de 30 minutos y firma HMAC. Un snapshot expirado genera `InheritanceExpired` (error esperado — solicitar snapshot fresco al factory). Un snapshot con firma inválida genera `InheritanceTampered` → `SECURITY_VIOLATION` inmediato.
 
@@ -201,8 +201,8 @@
 |---|---|
 | Versión | v4.0 |
 | Prioridad | ALTA |
-| Estado | PENDIENTE |
-| Evidencia | — |
+| Estado | COMPLETADO |
+| Evidencia | commit bbc2e36 — Gate 3 APROBADO 2026-03-31 |
 
 **Descripción:** AtomLoader verifica el SHA-256 de cada skill contra `skills/manifest.json` antes de cargarlo. Hash incorrecto → `BLOQUEADO_POR_HERRAMIENTA` (se notifica al usuario). Si el skill no está en el manifest → `BLOQUEADO_POR_HERRAMIENTA`. Solo StandardsAgent con permiso `skill:write` (concedido post-gate SecurityAgent con confirmación humana) puede actualizar el manifest. El permiso expira en 30 minutos.
 
@@ -216,8 +216,8 @@
 |---|---|
 | Versión | v4.0 |
 | Prioridad | MEDIA |
-| Estado | PENDIENTE |
-| Evidencia | — |
+| Estado | COMPLETADO |
+| Evidencia | commit bbc2e36 — Gate 3 APROBADO 2026-03-31 |
 
 **Descripción:** RealtimeMetrics captura tokens y costo por agente en tiempo real, en cada llamada al LLM. No requiere infraestructura externa. Genera alertas al 75% del presupuesto configurado (WARNING al MasterOrchestrator) y al 90% (CRITICAL — presentar al usuario antes de continuar).
 
@@ -231,8 +231,8 @@
 |---|---|
 | Versión | v4.0 |
 | Prioridad | MEDIA |
-| Estado | PENDIENTE |
-| Evidencia | — |
+| Estado | COMPLETADO |
+| Evidencia | commit bbc2e36 — Gate 3 APROBADO 2026-03-31 |
 
 **Descripción:** El ExecutionAuditReport generado por ExecutionAuditor incluye obligatoriamente: `total_events`, `total_irregularities`, `critical_irregularities`, `gate_compliance_rate`, `tokens_per_agent`, `pmia_messages_total`, `pmia_retries`, `pmia_retry_rate`, `summary`. Disponible al cierre de cualquier ejecución Nivel 2.
 
@@ -246,8 +246,8 @@
 |---|---|
 | Versión | v4.0 |
 | Prioridad | MEDIA |
-| Estado | PENDIENTE |
-| Evidencia | — |
+| Estado | COMPLETADO |
+| Evidencia | commit bbc2e36 — Gate 3 APROBADO 2026-03-31 |
 
 **Descripción:** El directorio `logs_veracidad/` se organiza por producto. Estructura: `logs_veracidad/_global/` para eventos del framework en sí (intent rejections, cambios meta) y `logs_veracidad/<product-id>/` para eventos de cada producto/objetivo. Formato JSONL append-only con timestamp ISO8601 en cada línea.
 
@@ -261,8 +261,8 @@
 |---|---|
 | Versión | v4.0 |
 | Prioridad | MEDIA |
-| Estado | PENDIENTE |
-| Evidencia | — |
+| Estado | COMPLETADO |
+| Evidencia | commit bbc2e36 — Gate 3 APROBADO 2026-03-31 |
 
 **Descripción:** Cada línea JSONL de logs incluye obligatoriamente: `ts` (ISO8601), `session` (objective_id), `agent`, `event`, y los campos específicos del tipo de evento. El schema canónico está definido en `metrics/execution_audit_schema.md`. Los logs son append-only — nunca se sobreescriben.
 

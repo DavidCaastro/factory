@@ -218,7 +218,7 @@ Lectura por Master Orchestrator al inicio de FASE 0 para calcular baseline.
 
 | Campo | Valor |
 |---|---|
-| Fecha inicio | N/D |
+| Fecha inicio | 2026-03-31 (sesión única) |
 | Fecha cierre | 2026-03-31 20:01 UTC |
 | execution_mode | DEVELOPMENT |
 | compliance_scope | MINIMAL |
@@ -227,14 +227,31 @@ Lectura por Master Orchestrator al inicio de FASE 0 para calcular baseline.
 #### Métricas de Entrega
 | Métrica | Valor |
 |---|---|
-| Tareas completadas | 0/0 |
-| Gate pass rate | Ver gates_completed en estado |
+| Tareas completadas | 8/8 (T-01..T-08) |
+| Gate pass rate | 100% primera pasada (18/18 gates, 0 rechazos) |
+| Lead time (inicio → Gate 3) | ~1 sesión / ~3h |
+| Irregularidades críticas | 0 |
+| Known issues | hooks PostToolUse no activos (no crítico, documentado) |
+
+#### Métricas de Gate
+| Gate | Resultado primera pasada | Iteraciones |
+|---|---|---|
+| Gate 2 (por tarea T-01..T-08) | PASS | 1 cada uno |
+| Gate 1 CoherenceAgent (T-04, T-05) | PASS | 1 cada uno |
+| Gate 2b (por tarea T-01..T-08) | PASS | 1 cada uno |
+| Gate 3 (humano) | APROBADO | 1 |
 
 #### Métricas de Costo
 | Campo | Valor |
 |---|---|
-| tokens_input | Ver ExecutionAuditReport |
-| tokens_output | Ver ExecutionAuditReport |
-| usd_actual | Ver ExecutionAuditReport |
+| tokens_input | Ver ExecutionAuditReport (.piv/active/) |
+| tokens_output | Ver ExecutionAuditReport (.piv/active/) |
+| usd_actual | Ver ExecutionAuditReport (.piv/active/) |
+
+#### Commits de Entrega
+| Referencia | Commit |
+|---|---|
+| Gate 3 APROBADO (release v4.0) | bbc2e36 |
+| Cierre FASE 8 (logs + engram) | 0fcca1d |
 
 ---
