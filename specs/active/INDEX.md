@@ -18,7 +18,7 @@
 | compliance_scope | MINIMAL |
 | gate3_reminder_hours | 24 |
 | Fecha de inicio | 2026-03-31 |
-| Última actualización | 2026-03-31 |
+| Última actualización | 2026-04-02 |
 
 ---
 
@@ -40,11 +40,11 @@
 
 | Atributo | Valor |
 |---|---|
-| Objetivo en curso | Actualizar capa directiva v3.2 → v4.0 |
-| RFs en scope | RF-LOG-01..03, RF-EXEC-01..02, RF-CSP-01..03, RF-PMIA-01..02, RF-INHERIT-01..02, RF-SIGN-01, RF-METRICS-01..02, RF-LOGS-01..02 |
-| Estado | EN_EJECUCION |
-| Última ejecución completada | — |
-| Commit de entrega | — |
+| Objetivo en curso | — (sin objetivo activo) |
+| RFs en scope | — |
+| Estado | COMPLETADO |
+| Última ejecución completada | OBJ-003 — 2026-03-31 20:01 UTC |
+| Commit de entrega | bbc2e36 (Gate 3 APROBADO) / 0fcca1d (cierre FASE 8) |
 
 ---
 
