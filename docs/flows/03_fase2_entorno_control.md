@@ -20,6 +20,7 @@ flowchart TD
         AA["Agent(AuditAgent\nmodel=sonnet\nrun_in_background=True)"]
         STA["Agent(StandardsAgent\nmodel=sonnet\nrun_in_background=True)"]
         CA["Agent(CoherenceAgent\nmodel=sonnet\nrun_in_background=True)"]
+        EA["Agent(ExecutionAuditor\nmodel=haiku\nrun_in_background=True\nbudget_tokens=5000)\n← v4.0: observador OOB FASE 2→8"]
     end
 
     subgraph CONDITIONAL["Agentes condicionales (mismo mensaje si aplica)"]
@@ -32,7 +33,7 @@ flowchart TD
     CONDITIONAL --> WAIT
 
     subgraph WAIT["Esperar completado de todos los lanzados"]
-        W1["Recibir notificaciones de:\n• SecurityAgent: LISTO\n• AuditAgent: LISTO\n• StandardsAgent: LISTO\n• CoherenceAgent: LISTO\n• ComplianceAgent: LISTO (si aplica)"]
+        W1["Recibir notificaciones de:\n• SecurityAgent: LISTO\n• AuditAgent: LISTO\n• StandardsAgent: LISTO\n• CoherenceAgent: LISTO\n• ExecutionAuditor: LISTO (presupuesto propio 5K)\n• ComplianceAgent: LISTO (si aplica)"]
         W1 --> W2{¿Todos\nnotificaron?}
         W2 -->|NO — 1er o 2do intento| W3[Esperar notificaciones restantes]
         W2 -->|NO — 3er intento sin respuesta| W4["Escalar al usuario\n(agente no responde)"]

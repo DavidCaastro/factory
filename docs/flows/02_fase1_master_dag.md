@@ -52,10 +52,25 @@ flowchart TD
 
     D4 --> COMPLIANCE_EVAL
     COMPLIANCE_EVAL --> CONTROL_TABLE
-    CT2 --> PRESENT
+    CT2 --> LOGISTICS
+
+    subgraph LOGISTICS["Paso 2b — LogisticsAgent: Análisis de Recursos (v4.0, solo Nivel 2)"]
+        LG1["Agent(LogisticsAgent, model=haiku, budget_tokens=3000)\n→ LogisticsAgent.analyze_dag(dag, specs)\n→ Produce TokenBudgetReport"]
+        LG1 --> LG2{¿fragmentation_required\nen alguna tarea?}
+        LG2 -->|SÍ| LG3["Ajustar número de expertos\nrecomendado en el DAG"]
+        LG2 -->|NO| LG4[DAG sin cambios]
+        LG3 --> LG5{¿WARNING_ANOMALOUS\n_ESTIMATE?}
+        LG4 --> LG5
+        LG5 -->|SÍ| LG6["Marcar tarea en informe\npara revisión del usuario"]
+        LG5 -->|NO| LG7[Informe sin warnings]
+        LG6 --> PRESENT
+        LG7 --> PRESENT
+    end
+
+    LOGISTICS --> PRESENT
 
     subgraph PRESENT["Presentar al usuario"]
-        PR1["Mostrar:\n• Grafo de dependencias (DAG)\n• Entorno de control determinado\n• Resumen de compliance\n• Borrador de Mitigación si aplica"]
+        PR1["Mostrar:\n• Grafo de dependencias (DAG)\n• TokenBudgetReport (estimación total + por tarea)\n• Tareas con fragmentation_required=true (si aplica)\n• WARNING_ANOMALOUS_ESTIMATE (si aplica)\n• Entorno de control determinado\n• Resumen de compliance\n• Borrador de Mitigación si aplica"]
         PR1 --> PR2{¿Usuario confirma?}
         PR2 -->|NO / cambios| ADJUST[Ajustar DAG y volver a presentar]
         PR2 -->|SÍ| FASE2

@@ -12,14 +12,18 @@ flowchart TD
         STD_CLOSE["StandardsAgent"]
         CMP_CLOSE["ComplianceAgent (si activo)"]
         COH_CLOSE["CoherenceAgent"]
+        EA_CLOSE["ExecutionAuditor ← v4.0\n(genera reporte final OOB)"]
+    end
+
+    subgraph EA_TASKS["ExecutionAuditor — Reporte final (v4.0, OOB)"]
+        EAT1["ExecutionAuditor.generate_final_report()\nCorre en paralelo con los otros cierres\nGenera SIEMPRE — incluso si ejecución principal falla"]
+        EAT1 --> EAT2["ExecutionAuditReport contiene:\n• total_events, total_irregularities\n• critical_irregularities\n• gate_compliance_rate\n• tokens_per_agent\n• pmia_messages_total, pmia_retries\n• summary (< 100 tokens)"]
+        EAT2 --> EAT3["Entregar reporte como insumo a AuditAgent\n(no lo sustituye — lo complementa)\nVer: metrics/execution_audit_schema.md"]
     end
 
     subgraph AUDIT_TASKS["AuditAgent — Tareas de cierre"]
-        AT1["Generar 3 logs en /logs_veracidad/ (append-only):
-        1. acciones_realizadas.txt
-        2. agentes_instanciados.txt
-        3. conformidad_protocolo.txt"]
-        AT1 --> AT2["Ejecutar Reporte de Conformidad de Protocolo\n(verificar que todas las fases se ejecutaron\nsegún el protocolo del framework)"]
+        AT1["Generar logs en logs_veracidad/<product-id>/ (append-only, v4.0):\n• acciones.jsonl\n• uso_contexto.jsonl\n• verificacion_rf.jsonl\nUsar scripts/fase8_auto.py para generación automática"]
+        AT1 --> AT2["Ejecutar Reporte de Conformidad de Protocolo\n(verificar que todas las fases se ejecutaron\nsegún el protocolo del framework)\nIncluir ExecutionAuditReport como insumo"]
         AT2 --> AT3["Registrar métricas en metrics/sessions.md (append-only)\nNunca estimar — solo valores de herramientas o logs:\n• first_pass_rate, gate_rejections, veto_saturacion\n• cobertura, tareas, expertos, duración"]
         AT3 --> AT4["Recolectar outputs de:\n• StandardsAgent\n• SecurityAgent\n• ComplianceAgent\nGenerar TechSpecSheet en:\n/compliance/<objetivo>/delivery/TECH_SPEC_SHEET.md\nEstándar: ISO/IEC/IEEE 29148:2018 + ISO/IEC 25010:2023"]
         AT4 --> AT5["Actualizar átomos engram/ según dominio\n(NO session_learning.md — DEPRECATED):\n• engram/core/ — Master Orchestrator\n• engram/security/ — SecurityAgent\n• engram/audit/ — AuditAgent\n• engram/quality/ — StandardsAgent\n• engram/domains/ — Domain Orchestrators"]
@@ -48,10 +52,13 @@ flowchart TD
         CP2 --> CP3["Cada entregable incluye:\n'Requiere revisión humana antes de despliegue'\nComplianceAgent NUNCA garantiza compliance legal"]
     end
 
+    PARALLEL_CLOSE --> EA_TASKS
     PARALLEL_CLOSE --> AUDIT_TASKS
     PARALLEL_CLOSE --> STD_TASKS
     PARALLEL_CLOSE --> COH_TASKS
     PARALLEL_CLOSE --> CMP_TASKS
+
+    EA_TASKS --> AUDIT_TASKS
 
     AUDIT_TASKS & STD_TASKS & COH_TASKS & CMP_TASKS --> ATOMIZATION_CHECK
 

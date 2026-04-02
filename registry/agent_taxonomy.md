@@ -1,4 +1,4 @@
-# REGISTRY: Taxonomía de Agentes PIV/OAC v3.2
+# REGISTRY: Taxonomía de Agentes PIV/OAC v4.0
 > Referencia completa: tipos de agentes, ciclo de vida, modelo, estructura de ramas y criterios de creación/destrucción.
 
 ---
@@ -124,6 +124,31 @@ main
 | Limitación crítica | NUNCA garantiza compliance legal. Genera checklists + disclaimer de revisión humana. |
 | Ver definición | `registry/compliance_agent.md` |
 
+#### LogisticsAgent ← v4.0
+| Campo | Valor |
+|---|---|
+| Modelo | claude-haiku-4-5 |
+| Ciclo de vida | FASE 1 únicamente — activo tras construcción del DAG, antes de presentarlo al usuario |
+| Responsabilidad | Análisis proactivo de recursos. Produce TokenBudgetReport antes de la confirmación humana del DAG. |
+| Capacidad | Sin veto. Sin participación en gates. Solo estima y advierte. |
+| Presupuesto propio | 3.000 tokens (fuera del pool del objetivo) |
+| Contexto | DAG + specs/active/ (estimación heurística) |
+| Cap de estimación | Definido en `registry/logistics_agent.md` §3 — no superable (defensa contra inyección de complejidad) |
+| Ver definición | `registry/logistics_agent.md` |
+
+#### ExecutionAuditor ← v4.0
+| Campo | Valor |
+|---|---|
+| Modelo | claude-haiku-4-5 |
+| Ciclo de vida | FASE 2 → FASE 8 — observador out-of-band permanente |
+| Responsabilidad | Observar y registrar eventos de ejecución. No interviene en gates. No emite veredictos. |
+| Capacidad | Sin veto. Sin acciones sobre el flujo. Solo observa y registra. |
+| Presupuesto propio | 5.000 tokens (fuera del pool del objetivo) |
+| Irregularidades detectadas | `GATE_SKIPPED`, `GATE_BYPASSED`, `PROTOCOL_DEVIATION`, `TOKEN_OVERRUN`, `CONTEXT_SATURATION`, `UNAUTHORIZED_INSTANTIATION` |
+| Reporte final | ExecutionAuditReport — generado SIEMPRE, incluso si la ejecución principal falla |
+| Reporte parcial | Si fallo interno → campo `error` poblado, sin propagar excepción |
+| Ver definición | `registry/execution_auditor.md` |
+
 ---
 
 ### Nivel 1 — Domain Orchestrators
@@ -214,7 +239,7 @@ Sub-agentes temporales creados por agentes del entorno de control o Domain Orche
 | Restricción crítica | No pueden crear sub-agentes si están en profundidad 2 — deben reportar SCOPE_EXCEDIDO |
 | Naming | `<AgentePadre>/<especialización>[-N]` (ej: `SecurityAgent/crypto`, `AuditAgent/rf-01`) |
 | Formato de reporte | Coalescencia estructurada — ver `agent.md` §13 |
-| Registro | AuditAgent registra creación y destrucción en `logs_veracidad/acciones_realizadas.txt` |
+| Registro | AuditAgent registra creación y destrucción en `logs_veracidad/<product-id>/acciones.jsonl` |
 
 **Paralelismo de sub-agentes:** Si el agente padre divide el scope en N particiones independientes, lanza los N sub-agentes en PARALELO REAL (`run_in_background=True` en el mismo mensaje).
 
@@ -258,9 +283,10 @@ Destrucción forzada  →  2 rechazos consecutivos del gate → Master notifica 
 
 ### Comunicación entre agentes
 - Los agentes NO comparten contexto directamente
-- Comunicación por **mensajes estructurados**: output → input del siguiente
-- Ningún agente recibe el contexto completo de otro, solo el resultado relevante para su tarea
+- Comunicación por **PMIA v4.0** (ver `skills/inter-agent-protocol.md`): 4 tipos de mensaje (`GATE_VERDICT`, `ESCALATION`, `CROSS_ALERT`, `CHECKPOINT_REQ`), máx. 300 tokens, firma HMAC obligatoria
+- Artefactos compartidos por `artifact_ref` — nunca por copia directa de contenido
 - El CoherenceAgent recibe **diffs**, no código completo
+- El ExecutionAuditor recibe eventos — no recibe tareas ni produce veredictos
 
 ### Patrón de lanzamiento paralelo real
 Siempre que el DAG indique tareas/agentes independientes, lanzarlos en el **mismo mensaje** con `run_in_background=True`:
