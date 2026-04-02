@@ -490,3 +490,59 @@ El componente que originó el rechazo debe estar documentado en `acciones_realiz
 [TIMESTAMP] RAZÓN: <texto específico si rechazado>
 [TIMESTAMP] ACCIÓN_SIGUIENTE: <continuar|revisar plan|escalar usuario>
 ```
+
+---
+
+## Context Scope Protocol (CSP) — Protocolo Recomendado v4.0
+
+> Estado: Protocolo RECOMENDADO. Se convierte en regla permanente con soporte SDK completo.
+> Fuente de detalle: skills/context-management.md §CSP
+
+### Principio
+
+En gates con múltiples agentes revisando el mismo artefacto:
+1. El artefacto se almacena UNA VEZ en StateStore → genera `artifact_ref`
+2. Cada agente recibe solo el scope filtrado según su checklist
+3. El agente puede solicitar contexto adicional por `artifact_ref`
+4. El razonamiento (chain of thought) es in-agent — solo viaja el veredicto estructurado
+
+### Scope Filters Canónicos por Agente
+
+| Agente | Scope keywords | % típico recibido |
+|---|---|---|
+| SecurityAgent | auth, authentication, authorization, crypto, bcrypt, jwt, token, secret, password, session, rbac, input_validation, sanitize, permission, cors, header | 25-35% |
+| AuditAgent | business_logic, domain, service, repository, tests, test_, spec_, rf_coverage | 35-45% |
+| StandardsAgent | test_, _test, spec_, docstring, import, public_api, README, docs/ | 25-40% |
+| CoherenceAgent | Opera sobre diffs inter-experto directamente (Gate 1) — scope propio definido en §Gate 1 |
+
+### Ahorro estimado por gate
+
+| Gate | Sin CSP | Con CSP | Reducción estimada |
+|---|---|---|---|
+| Gate 2 (plan review) | 3 × artefacto completo | 3 × scope filtrado | 30-45% |
+| Gate 2b (code review) | 3 × diff completo | 3 × scope filtrado | 35-50% |
+| Gate 3 (pre-producción) | 3 × staging completo | 3 × scope filtrado | 25-40% |
+
+---
+
+## Protocolo de Mensaje Inter-Agente (PMIA) — v4.0
+
+> Fuente de detalle: skills/inter-agent-protocol.md
+> Los 4 tipos de mensaje y el retry protocol completo están en ese skill.
+
+### Reglas de uso en gates
+
+1. Los veredictos de gate son mensajes tipo `GATE_VERDICT` (estructura definida en el skill)
+2. Máximo 300 tokens por mensaje — sin chain-of-thought
+3. Hallazgos se comparten por `artifact_ref` + `fragment_hint`, no por contenido
+4. Firma HMAC obligatoria en todo mensaje
+5. Si el receptor recibe un mensaje malformado → `MALFORMED_MESSAGE` → retry (máx 2) → ESCALATE
+
+### Verificación de firma en veredictos
+
+| Resultado | Acción |
+|---|---|
+| Firma válida + TTL vigente | Procesar veredicto normalmente |
+| TTL vencido (`MessageExpired`) | Reintento con re-firma (máx 3, backoff 2s) |
+| Firma inválida (`MessageTampered`) | SECURITY_VIOLATION inmediato — no reintentar |
+| Estructura inválida (`MALFORMED_MESSAGE`) | Retry protocol PMIA (máx 2 reintentos) |

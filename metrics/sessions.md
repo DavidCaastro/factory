@@ -62,8 +62,25 @@ Lectura por Master Orchestrator al inicio de FASE 0 para calcular baseline.
 | Archivos únicos / total cargados | X% | Objetivo: ≥70% (baja redundancia) |
 | Fragmentaciones realizadas | X | |
 
+#### Métricas de Eficiencia v4.0
+| Campo | Valor | Objetivo |
+|---|---|---|
+| tokens_estimated | 0 (del TokenBudgetReport) | — |
+| tokens_actual | 0 (del ExecutionAuditReport) | — |
+| token_efficiency_pct | 0% | ≤ 120% |
+| csp_avg_filter_pct | 0% | ≥ 25% |
+| gate_compliance_rate | 100% | 100% |
+| pmia_messages_total | 0 | — |
+| pmia_retries | 0 | — |
+| pmia_retry_rate | 0% | ≤ 5% |
+| context_saturation_events | 0 | 0 |
+| critical_irregularities | 0 | 0 |
+
+> Automatización: `scripts/fase8_auto.py --objective-id <id> --product-id <product>` genera esta sección automáticamente
+> leyendo el ExecutionAuditReport. AuditAgent revisa y aprueba — no escribe manualmente.
+
 #### Incidencias
-- (ninguna) o lista de BLOQUEADA_POR_DISEÑO / INVESTIGACIÓN_REQUERIDA / BLOQUEADO_POR_HERRAMIENTA ocurridas
+- (ninguna) o lista de BLOQUEADA_POR_DISEÑO / INVESTIGACIÓN_REQUERIDA / BLOQUEADO_POR_HERRAMIENTA / irregularidades CRITICAL ocurridas
 
 #### Aprendizajes (AuditAgent)
 - (átomos engram/ según dominio — ver engram/INDEX.md para tabla de acceso por agente)
@@ -196,3 +213,45 @@ Lectura por Master Orchestrator al inicio de FASE 0 para calcular baseline.
 | Lead time promedio | ~2 sesiones / ~4h | 2 |
 | Fragmentaciones por objetivo | 0 | 2 |
 | Contexto promedio por experto | N/A (OBJ-001: ciclo informal; OBJ-002: MODO_META) | 2 |
+
+### OBJ-003 — framework-v4.0
+
+| Campo | Valor |
+|---|---|
+| Fecha inicio | 2026-03-31 (sesión única) |
+| Fecha cierre | 2026-03-31 20:01 UTC |
+| execution_mode | DEVELOPMENT |
+| compliance_scope | MINIMAL |
+| Resultado | COMPLETADO |
+
+#### Métricas de Entrega
+| Métrica | Valor |
+|---|---|
+| Tareas completadas | 8/8 (T-01..T-08) |
+| Gate pass rate | 100% primera pasada (18/18 gates, 0 rechazos) |
+| Lead time (inicio → Gate 3) | ~1 sesión / ~3h |
+| Irregularidades críticas | 0 |
+| Known issues | hooks PostToolUse no activos (no crítico, documentado) |
+
+#### Métricas de Gate
+| Gate | Resultado primera pasada | Iteraciones |
+|---|---|---|
+| Gate 2 (por tarea T-01..T-08) | PASS | 1 cada uno |
+| Gate 1 CoherenceAgent (T-04, T-05) | PASS | 1 cada uno |
+| Gate 2b (por tarea T-01..T-08) | PASS | 1 cada uno |
+| Gate 3 (humano) | APROBADO | 1 |
+
+#### Métricas de Costo
+| Campo | Valor |
+|---|---|
+| tokens_input | Ver ExecutionAuditReport (.piv/active/) |
+| tokens_output | Ver ExecutionAuditReport (.piv/active/) |
+| usd_actual | Ver ExecutionAuditReport (.piv/active/) |
+
+#### Commits de Entrega
+| Referencia | Commit |
+|---|---|
+| Gate 3 APROBADO (release v4.0) | bbc2e36 |
+| Cierre FASE 8 (logs + engram) | 0fcca1d |
+
+---

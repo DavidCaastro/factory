@@ -86,6 +86,20 @@ Antes de crear ningún agente, el Master construye el DAG completo de tareas:
 - La interfaz o contrato de otra tarea debe estar definido primero
 - La tarea valida o verifica el resultado de otra
 
+### Paso 2b: Análisis de Recursos — LogisticsAgent (v4.0)
+
+Al finalizar la construcción del DAG (antes de presentarlo al usuario):
+```
+→ LogisticsAgent.analyze_dag(dag, specs) → TokenBudgetReport
+→ Incluir TokenBudgetReport en la presentación al usuario
+→ Si fragmentation_required en alguna tarea: ajustar número de expertos antes de presentar
+→ Si WARNING_ANOMALOUS_ESTIMATE: presentar al usuario como parte del informe
+```
+
+> LogisticsAgent se activa en FASE 1 con presupuesto propio (3K tokens, fuera del pool del objetivo).
+> Solo en objetivos Nivel 2. En Nivel 1 es opcional.
+> Ver: registry/logistics_agent.md
+
 ### Paso 3: Composición del Entorno de Control
 El Master lee `compliance_scope` de `specs/active/INDEX.md` y determina el entorno de control
 usando la tabla de activación determinista (no inferencia semántica):
@@ -139,15 +153,18 @@ Leer valor literal de compliance_scope → comparar fila a fila:
 
 3. Tras confirmación: crear entorno de control completo en PARALELO REAL.
    Agentes SIEMPRE presentes:
-     Agent(SecurityAgent,  model=opus,   run_in_background=True)
-     Agent(AuditAgent,     model=sonnet, run_in_background=True)
-     Agent(StandardsAgent, model=sonnet, run_in_background=True,
+     Agent(SecurityAgent,    model=opus,   run_in_background=True)
+     Agent(AuditAgent,       model=sonnet, run_in_background=True)
+     Agent(StandardsAgent,   model=sonnet, run_in_background=True,
            prompt_extra="MODO_META_ACTIVO: <true|false> — si true, cargar skills/framework-quality.md
                          en lugar de skills/standards.md para Gate 2")
-     Agent(CoherenceAgent, model=sonnet, run_in_background=True)
+     Agent(CoherenceAgent,   model=sonnet, run_in_background=True)
+     Agent(ExecutionAuditor, model=haiku,  run_in_background=True)  ← NUEVO v4.0 — observador OOB
    Agente CONDICIONAL (añadir al mismo mensaje si compliance_scope != "NONE"):
      Agent(ComplianceAgent, model=sonnet, run_in_background=True)
      ← enviar todos en el mismo mensaje → esperar todos antes de continuar
+   Nota v4.0: ExecutionAuditor opera con presupuesto propio (5K tokens). No recibe tareas.
+              Solo observa y registra irregularidades hasta FASE 8. Ver: registry/execution_auditor.md
    Nota: el valor de MODO_META_ACTIVO se determina en FASE 1 y debe incluirse explícitamente
          en el prompt de creación del StandardsAgent — nunca inferido por el agente.
 4. Crear rama staging (si no existe): git checkout -b staging main

@@ -220,3 +220,56 @@ AuditAgent verifica este invariante en FASE 8 revisando logs.
 | `CLAUDE.md` regla "Continuidad de Sesión" | Regla del 60% a nivel de framework |
 | `registry/orchestrator.md` | Protocolo de checkpoint del Master Orchestrator |
 | `.piv/README.md` | Schema del checkpoint JSON |
+
+---
+
+## InheritanceGuard v4.0 — Herencia Controlada
+
+El lazy loading controla qué archivos carga un agente.
+El InheritanceGuard controla qué contexto hereda de su agente padre.
+
+### SAFE_INHERIT — Whitelist explícita
+
+Solo estos 5 atributos pasan de padre a hijo:
+- `objective_id` — ID del objetivo en curso
+- `task_scope` — scope de la tarea asignada
+- `execution_mode` — DEVELOPMENT / RESEARCH / MIXED
+- `compliance_scope` — FULL / MINIMAL / NONE
+- `parent_agent_id` — ID del agente que lo creó
+
+**Todo lo demás NO se hereda.** Los permisos, credenciales y capacidades
+del hijo son asignados por PermissionStore, nunca por el padre.
+
+### Reglas de herencia
+
+| Regla | Valor | Por qué |
+|---|---|---|
+| Profundidad máxima | 1 nivel (padre → hijo) | Previene cadenas de herencia ocultas |
+| TTL del snapshot | 30 minutos | Un contexto muy antiguo puede ser incorrecto |
+| Firma HMAC | Obligatoria | Detectar manipulación del snapshot |
+| `InheritanceExpired` | Solicitar snapshot fresco | Error esperado en tareas largas |
+| `InheritanceTampered` | SECURITY_VIOLATION inmediato | Error no esperado — posible ataque |
+
+## Context Scope Protocol v4.0 — CSP (Protocolo Recomendado)
+
+Extensión del lazy loading aplicada al INPUT de los agentes de gate.
+
+**Problema:** En Gate 2b, tres agentes revisan el mismo diff en paralelo.
+Sin CSP, cada uno recibe el diff completo aunque su checklist solo cubra ~30-40%.
+
+**Solución:** El artefacto se almacena UNA VEZ en StateStore.
+Cada agente recibe solo el scope filtrado correspondiente a su checklist.
+Si un agente necesita más contexto → solicita por `artifact_ref`.
+
+### Scope filters por agente (canónicos, definidos en contracts/gates.md)
+
+| Agente | Keywords de su scope | % típico del diff |
+|---|---|---|
+| SecurityAgent | auth, crypto, bcrypt, jwt, token, secret, password, session, rbac, input_validation, cors | 25-35% |
+| AuditAgent | business_logic, domain, service, repository, tests, rf_coverage | 35-45% |
+| StandardsAgent | test_, _test, docstring, import, public_api, docs/ | 25-40% |
+
+El razonamiento (chain of thought) es in-agent. Solo viaja el veredicto estructurado.
+
+**Estado:** Protocolo RECOMENDADO en capa directiva. Se convierte en regla permanente
+obligatoria cuando el SDK tenga soporte completo de StateStore y artifact_ref.

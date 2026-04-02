@@ -148,6 +148,19 @@ ESCRITURA: solo en engram/precedents/ y solo post-Gate 3 por delegación de Audi
 > Átomos en estado VACÍO: se crean con primer contenido cuando un agente genera aprendizajes en esa dimensión.
 > Átomos no consultados en >10 sesiones → AuditAgent los marca como REVISAR para posible archivado.
 
+### LogisticsAgent
+PRIMARY: ninguno (no aprende — solo estima)
+CONDITIONAL: ninguno
+ESCRITURA: ninguna (no escribe en engram/)
+NOTA: LogisticsAgent no acumula conocimiento entre sesiones. Sus caps son fijos.
+      Sus estimaciones mejoran si el ejecutor humano ajusta los parámetros de heurística.
+
+### ExecutionAuditor
+PRIMARY: ninguno (no consume contexto de engram al inicializarse)
+CONDITIONAL: ninguno
+ESCRITURA: engram/audit/gate_decisions.md — añade irregularidades CRITICAL detectadas
+           para que SecurityAgent las consulte en sesiones futuras.
+
 ---
 
 ## Protocolo de Conflicto entre Átomos

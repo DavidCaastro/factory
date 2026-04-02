@@ -111,6 +111,43 @@ Aplicar en FASE 4 gate de plan: el plan debe incluir una fase de auditoría prev
 
 ---
 
+## 2026-03-31 — Rama base intermedia para upgrades de framework (OBJ-003)
+
+**Patrón:** Al actualizar el framework directivo (no un producto), crear una rama base intermedia (`directive/v4.0-base`) desde `agent-configs` antes de crear las feature branches. Esto evita contaminar `agent-configs` con trabajo en progreso y permite validar la base antes de derivar tareas.
+
+**Secuencia:**
+```
+agent-configs (intocable)
+  └── directive/v4.0-base  ← base intermedia validada
+        └── feature/T-01..T-08  ← tareas derivadas
+        └── staging           ← integración progresiva
+main                          ← entrega final Gate 3
+```
+
+**Condición de aplicación:** Cuando el producto a construir ES el framework (`MODO_META_ACTIVO`). No aplica a productos que usan el framework.
+
+---
+
+## 2026-03-31 — scripts/fase8_auto.py: FASE 8 sin tokens LLM (OBJ-003)
+
+**Patrón:** Crear un script mecánico (`scripts/fase8_auto.py`) que genere los artefactos de cierre de FASE 8 leyendo el estado del checkpoint JSON y el historial git, sin invocar LLM.
+
+**Resultado:** 0 tokens LLM para el cierre de logs. El script genera `acciones.jsonl`, lee eventos del checkpoint, y calcula SHA-256 del output.
+
+**Dónde aplica:** Siempre en FASE 8. El script debe existir desde T-07 para poder usarse en T-08.
+
+---
+
+## 2026-03-31 — Ejecución secuencial de feature branches en MODO_META_ACTIVO (D-04)
+
+**Problema observado (OBJ-003):** Al actualizar el framework, las feature branches modifican archivos compartidos (CLAUDE.md, agent.md, contracts/gates.md). Ejecución paralela causaría conflictos de merge en staging.
+
+**Regla:** En MODO_META_ACTIVO, las tareas que tocan archivos core del framework se ejecutan SECUENCIALMENTE (una a la vez en staging), no en paralelo. Solo tareas con archivos 100% disjuntos pueden paralelizarse.
+
+**Secuencia aprobada OBJ-003:** T-01 → T-02 → T-03 → T-06 → T-04 → T-05 → T-07 → T-08.
+
+---
+
 ## 2026-03-23 — Patrón Astillero: desacoplamiento de producto
 
 **Evento:** Primer desacoplamiento ejecutado — EthQuery API extraída de lab/ a repo independiente.

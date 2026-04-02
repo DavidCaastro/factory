@@ -160,17 +160,19 @@ Solo tras confirmación explícita del usuario Y aprobación de Nivel 0 se escri
 
 `specs/active/research.md` solo se genera si `execution_mode: RESEARCH` o `MIXED`.
 
-### Plantillas de CI — Instalación automática obligatoria al cierre de INIT
+### Plantillas de CI — Instalación obligatoria al cierre de INIT
 
 El CI es parte del protocolo de promoción staging→main. No es opcional.
-INIT lo instala automáticamente sin preguntar y luego informa los pasos de activación.
+
+Tras escribir los specs, INIT instala el CI automáticamente **sin preguntar** y luego
+informa al usuario los pasos de activación pendientes:
 
 **Paso 1 — INIT instala los archivos (automático):**
 1. Copiar `specs/_templates/ci/piv_gate_checks.yml` → `.github/workflows/piv_gate_checks.yml`
    Sustituir: `{{SRC_DIR}}`, `{{TEST_DIR}}`, `{{COV_FAIL}}`, `{{PYTHON}}` con valores de `specs/active/`
 2. Copiar `specs/_templates/ci/pre-commit-config.yaml` → `.pre-commit-config.yaml`
    Sustituir: `{{SRC_DIR}}` con el directorio fuente declarado en `specs/active/architecture.md`
-3. Copiar `scripts/setup_branch_protection.sh` al repo del producto (sin sustituciones)
+3. Copiar `scripts/setup_branch_protection.sh` al repo del producto
 
 **Regla:** INIT sustituye los marcadores `{{...}}` con valores reales antes de escribir.
 Los archivos CI resultantes NO deben contener marcadores sin sustituir.
@@ -189,7 +191,7 @@ chmod +x scripts/setup_branch_protection.sh
 Settings → Branches → Branch protection rules → Add rule → main
   ✓ Require a pull request before merging
   ✓ Require status checks to pass before merging
-    → Agregar: gate-source-branch, gate-security, gate-standards, gate-conformance
+    → Agregar checks: gate-source-branch, gate-security, gate-standards, gate-conformance
   ✓ Require branches to be up to date before merging
   ✓ Do not allow bypassing the above settings
 ```
@@ -208,9 +210,9 @@ Esto configura GitHub para bloquear merges a main si:
 Sin este paso, el CI corre pero no bloquea nada.
 ```
 
-**Gate de source branch incluido (invariante — no negociable):**
-El job `gate-source-branch` bloquea PRs a `main` que no vengan de `staging`.
-INIT no puede omitirlo ni el usuario puede desactivarlo.
+**Gate de source branch incluido (no negociable):**
+El job `gate-source-branch` en el workflow bloquea PRs a `main` que no vengan de `staging`.
+INIT no puede omitirlo ni el usuario puede desactivarlo — es parte invariante del protocolo.
 
 ---
 

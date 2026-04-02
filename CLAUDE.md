@@ -1,7 +1,7 @@
 # INSTRUCCIONES OPERATIVAS PIV/OAC — Claude Code
 
 > **PIV** (Paradigma de Intencionalidad Verificable) + **OAC** (Orquestación Atómica de Contexto)
-> **Versión del framework:** PIV/OAC v3.2 | Git tags en `agent-configs` con formato `framework/vX.Y`
+> **Versión del framework:** PIV/OAC v4.0 | Git tags en `agent-configs` con formato `framework/vX.Y`
 > **Autoridad de jerarquía:** `CLAUDE.md` define el comportamiento operativo de Claude Code. `agent.md` provee el detalle del protocolo. En conflicto entre ambos, `CLAUDE.md` es la fuente de verdad operativa.
 
 **CARGA OBLIGATORIA:** Leer `agent.md` al inicio de toda sesión antes de cualquier otra acción. `agent.md` es la fuente de verdad del protocolo operativo completo (fases, gates, agentes, reglas detalladas).
@@ -117,6 +117,22 @@ Ver `agent.md` §Protocolo Nivel 2 — FASE 0 a FASE 8 para el protocolo complet
 | **EvaluationAgent como Insumo** | EvaluationAgent provee scores 0-1 como datos de entrada para CoherenceAgent. No emite veredictos de gate. CoherenceAgent mantiene autoridad exclusiva sobre Gate 1. |
 | **Precedentes Post-Gate 3** | Los precedentes en `engram/precedents/` solo son elegibles como input en estado VALIDADO (post-Gate 3). Ningún agente consume precedentes en estado REGISTRADO. Escritor exclusivo: AuditAgent. |
 
+| **Sin Bypass de Gate** | `gate:*:bypass` no existe como permiso válido. Ningún grupo ni usuario puede concederlo. Los gates solo se aprueban por agentes responsables o confirmación humana (Gate 3). |
+| **Factory Exclusiva** | Todo agente SDK se instancia vía AgentFactory. Instanciación directa fuera del factory es PROTOCOL_DEVIATION. Ver: skills/agent-factory.md |
+| **Herencia Single-Level** | Contexto heredado solo padre→hijo, máx. 1 nivel. Sin cadenas recursivas. |
+| **Whitelist de Herencia** | Solo SAFE_INHERIT (5 campos: objective_id, task_scope, execution_mode, compliance_scope, parent_agent_id). Permisos y credenciales NUNCA se heredan — los asigna PermissionStore. |
+| **TTL de Contexto Heredado** | Snapshot de herencia tiene TTL 30 minutos + firma HMAC. InheritanceExpired si vence → solicitar fresco. InheritanceTampered → SECURITY_VIOLATION inmediato. |
+| **ExecutionAuditor Obligatorio** | Toda ejecución Nivel 2 instancia un ExecutionAuditor (haiku, presupuesto propio 5K). Opera out-of-band. Genera reporte final siempre. |
+| **LogisticsAgent Pre-Instanciación** | En objetivos Nivel 2, LogisticsAgent produce TokenBudgetReport antes de presentar el DAG al usuario. El Master no presenta el DAG sin el informe adjunto. |
+| **Proveedor Default** | Si no hay multi-provider configurado → Anthropic. El sistema nunca falla por ausencia de proveedores alternativos. |
+| **StateStore Fallback** | Si Redis no disponible → FilesystemStateStore. El sistema nunca falla por ausencia de almacenamiento distribuido. |
+| **HMAC en Mensajes de Gate** | Veredictos inter-agente (PMIA) firmados con HMAC. MessageTampered → SECURITY_VIOLATION inmediato. Ver: skills/inter-agent-protocol.md |
+| **Telemetría No-Op** | Si OTEL_ENDPOINT no definido → no-op transparente. El sistema nunca falla por ausencia de telemetría. |
+| **Lock en Merges** | Todo merge bajo AsyncLock si SDK activo. Previene condiciones de carrera en merges paralelos. |
+| **Context Scope Protocol** | En gates multi-agente: artefacto almacenado UNA VEZ en StateStore, scope filtrado por agente. RECOMENDADO (se convierte en obligatorio con soporte SDK completo). Ver: skills/context-management.md §CSP |
+| **Cap de Estimación LogisticsAgent** | LogisticsAgent no puede superar los caps de nivel definidos en registry/logistics_agent.md §3. Defensa contra inyección de complejidad. |
+| **Code Signing de Skills** | AtomLoader verifica SHA-256 de cada skill contra skills/manifest.json antes de cargarlo. Hash incorrecto → BLOQUEADO_POR_HERRAMIENTA. Solo StandardsAgent con permiso skill:write puede actualizar el manifest. |
+
 > Protocolos detallados, taxonomía de agentes y definiciones de gates: `agent.md` y `registry/`. Gates canónicos: `contracts/gates.md`.
 
 ---
@@ -137,6 +153,20 @@ Ver tabla canónica en `contracts/models.md`. Resumen inline:
 | EvaluationAgent | claude-sonnet-4-6 |
 | Specialist Agents | claude-sonnet-4-6 / claude-haiku-4-5 según complejidad atómica |
 | DocumentationAgent | claude-haiku-4-5 (estructurado) / claude-sonnet-4-6 (inferencia de diseño) |
+| LogisticsAgent | claude-haiku-4-5 (estimación heurística, no razonamiento complejo) |
+| ExecutionAuditor | claude-haiku-4-5 (observación pasiva, registro de eventos) |
+
+### LogisticsAgent (Nuevo v4.0)
+- Modelo: claude-haiku-4-5
+- Rol: Análisis proactivo de recursos. Activo en FASE 1 (post-DAG).
+- Produce TokenBudgetReport. No emite veredictos de gate.
+- Ver: registry/logistics_agent.md
+
+### ExecutionAuditor (Nuevo v4.0)
+- Modelo: claude-haiku-4-5
+- Rol: Observador out-of-band FASE 2→8. No interviene en gates.
+- Genera ExecutionAuditReport siempre, incluso en fallo.
+- Ver: registry/execution_auditor.md
 
 Si cualquier agente detecta que su tarea supera su capacidad → escalar al orquestador padre antes de continuar.
 
@@ -147,7 +177,7 @@ Si cualquier agente detecta que su tarea supera su capacidad → escalar al orqu
 /
 ├── CLAUDE.md                        ← Este archivo (entrypoint operativo)
 ├── LAYERS.md                        ← Contrato de separación de capas (framework/proyecto/runtime)
-├── agent.md                         ← Marco operativo PIV/OAC v3.2 (protocolo completo — CARGA OBLIGATORIA)
+├── agent.md                         ← Marco operativo PIV/OAC v4.0 (protocolo completo — CARGA OBLIGATORIA)
 ├── contracts/                       ← Primitivas canónicas compartidas (CAPA 1 — FRAMEWORK)
 │   ├── gates.md                    ← Fuente única de Gate 1, 2, 2b, 3 (checklists + criterios)
 │   ├── models.md                   ← Tabla de asignación de modelos por agente

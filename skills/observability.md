@@ -240,3 +240,49 @@ Cuando un agente emite su respuesta estructurada, debe también emitir su span d
 | `skills/cost-control.md` | `piv_oac.objective.cost_usd` y `piv_oac.context.usage_pct` implementan la observabilidad del presupuesto y del VETO_SATURACIÓN definidos allí |
 | `sdk/piv_oac/telemetry/tracer.py` | Implementación del context manager `agent_span` y `setup_tracing` |
 | `sdk/piv_oac/telemetry/__init__.py` | Exports públicos del módulo de telemetría |
+
+---
+
+## Observabilidad v4.0 — Métricas en Tiempo Real
+
+### RealtimeMetrics (siempre activo)
+
+Captura tokens y costo por agente en cada llamada al LLM. No requiere configuración
+ni infraestructura externa. Complementa los logs_veracidad/ (que son el registro canónico).
+
+Campos capturados por agente:
+- tokens_input, tokens_output, tokens_total
+- cost_usd (calculado con tarifas configuradas por modelo)
+- context_window_pct (tokens_total / ventana_max × 100)
+
+Al cierre de FASE 8: RealtimeMetrics.final_snapshot() → incluido en ExecutionAuditReport.
+
+### ExecutionAuditor como observador OOB
+
+El ExecutionAuditor complementa los logs del AuditAgent con observación pasiva:
+- Detecta irregularidades que el AuditAgent podría no ver si su sesión falla
+- Opera con presupuesto propio — siempre genera su reporte
+- No duplica el trabajo del AuditAgent — registra el COMPORTAMIENTO del sistema,
+  no la CALIDAD del entregable (eso es rol del AuditAgent)
+
+### Métricas CSP por gate
+
+El GateEnforcer registra en ExecutionAuditor la eficiencia de filtrado CSP:
+```json
+{
+  "event": "CSP_FILTER_APPLIED",
+  "agent_id": "SecurityAgent",
+  "gate": "gate_2b",
+  "filtered_pct": 0.32,
+  "scope_applied": ["auth", "crypto", "secrets"]
+}
+```
+
+`filtered_pct` = fracción del artefacto enviada al agente.
+0.32 = el agente recibió 32% del diff — ahorro de 68%.
+Objetivo: promedio >= 25% de reducción vs sin CSP.
+
+### OpenTelemetry (opcional)
+
+Si `OTEL_ENDPOINT` está definido en variables de entorno → telemetría distribuida activa.
+Si no está definido → no-op transparente. El sistema nunca falla por ausencia de OTEL.
