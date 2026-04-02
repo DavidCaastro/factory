@@ -1,7 +1,7 @@
 # Contracts — Model Assignment
 > Fuente canónica de asignación de modelos por agente en el framework PIV/OAC.
 > La tabla de "Asignación de Modelo" en CLAUDE.md referencia este archivo.
-> Versión: 1.0 | Generado en: T1 del redesign PIV/OAC v3.2
+> Versión: 2.0 | Actualizado en: OBJ-003 upgrade v4.0
 
 ---
 
@@ -19,6 +19,8 @@
 | EvaluationAgent | claude-sonnet-4-6 | Scoring 0-1, comparación de outputs de expertos |
 | Specialist Agents | claude-sonnet-4-6 / claude-haiku-4-5 según complejidad atómica | Ver criterios abajo |
 | DocumentationAgent | claude-haiku-4-5 (estructurado) / claude-sonnet-4-6 (inferencia de diseño) | Ver criterios abajo |
+| LogisticsAgent | claude-haiku-4-5 | Estimación heurística pre-ejecución — no requiere razonamiento complejo. Ver: registry/logistics_agent.md |
+| ExecutionAuditor | claude-haiku-4-5 | Observación pasiva y registro de eventos — output totalmente predefinido. Ver: registry/execution_auditor.md |
 
 ---
 
@@ -49,6 +51,7 @@ Usar cuando:
 - El volumen de trabajo lo justifica (muchos archivos de documentación similar)
 - El error no tiene consecuencias irreversibles en el objetivo
 
+Agentes que siempre usan Haiku: LogisticsAgent, ExecutionAuditor.
 Agentes que pueden usar Haiku: Specialist Agents (complejidad baja), DocumentationAgent (modo estructurado).
 
 ### Specialist Agents — Criterio de selección
@@ -94,3 +97,4 @@ Un Domain Orchestrator puede asignar Haiku a un Specialist Agent si:
 | Versión | Fecha | Cambio |
 |---|---|---|
 | 1.0 | 2026-03-22 | Creación inicial — extraído de CLAUDE.md + adición de EvaluationAgent |
+| 2.0 | 2026-04-02 | v4.0: añadidos LogisticsAgent (haiku) y ExecutionAuditor (haiku) |

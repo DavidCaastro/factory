@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "generated_at": "2026-03-31T20:01:50.093380+00:00",
+  "generated_at": "2026-04-02T15:45:04.073192+00:00",
   "signed_by": "StandardsAgent",
   "objective_id": "OBJ-003",
   "note": "Hashes calculados por scripts/skill_manifest.py — ejecutar antes de primera carga de skills",
@@ -8,175 +8,175 @@
     "agent-contracts": {
       "path": "skills\\agent-contracts.md",
       "sha256": "0979f69cb8a66f7fbe12dd6a53daadfc95d2cbced6bf798a82c8eee9bfc2163a",
-      "last_updated": "2026-03-31T20:01:50.088848+00:00",
+      "last_updated": "2026-04-02T15:45:04.070665+00:00",
       "gate_verified": false
     },
     "agent-factory": {
       "path": "skills\\agent-factory.md",
       "sha256": "2b81ae9cce12e52f6b312854e814fd4a01f52167add9291940ec49e16ae64d0b",
-      "last_updated": "2026-03-31T20:01:50.089051+00:00",
+      "last_updated": "2026-04-02T15:45:04.070798+00:00",
       "gate_verified": false
     },
     "api-design": {
       "path": "skills\\api-design.md",
       "sha256": "a1453a79a9cde7453cded1e8562d67e4d0dccdb07ef3ad3a4e9fa7047f03132f",
-      "last_updated": "2026-03-31T20:01:50.089239+00:00",
+      "last_updated": "2026-04-02T15:45:04.070900+00:00",
       "gate_verified": false
     },
     "backend-security": {
       "path": "skills\\backend-security.md",
-      "sha256": "acc447a8a26b788044b6a97e48a4ec4f2836d7d8e6078546575c24c9f69e8a64",
-      "last_updated": "2026-03-31T20:01:50.089493+00:00",
+      "sha256": "9ff7e7259334e1eff46eed6fc8d181b0b96d164df86afecebc5465968d553897",
+      "last_updated": "2026-04-02T15:45:04.071022+00:00",
       "gate_verified": false
     },
     "change-management": {
       "path": "skills\\change-management.md",
       "sha256": "9f8f97e3d80132244c2110b0ec5241e0b937a687e43488383dfe8f5790987fe7",
-      "last_updated": "2026-03-31T20:01:50.089678+00:00",
+      "last_updated": "2026-04-02T15:45:04.071113+00:00",
       "gate_verified": false
     },
     "compliance": {
       "path": "skills\\compliance.md",
       "sha256": "e51337b47e8833471ba7c680f51860de8c16c3d6e4ae0db67378b42b823d99b9",
-      "last_updated": "2026-03-31T20:01:50.089863+00:00",
+      "last_updated": "2026-04-02T15:45:04.071200+00:00",
       "gate_verified": false
     },
     "context-management": {
       "path": "skills\\context-management.md",
       "sha256": "2202fd766fcc58c10f5b2ead5a8ab48211993539d121f3bee7e50faeb6882a86",
-      "last_updated": "2026-03-31T20:01:50.090050+00:00",
+      "last_updated": "2026-04-02T15:45:04.071300+00:00",
       "gate_verified": false
     },
     "cost-control": {
       "path": "skills\\cost-control.md",
       "sha256": "91bd839320929dd21967f032d2dd412755893d7b9f8d0ca89b2c1fb5d54e288d",
-      "last_updated": "2026-03-31T20:01:50.090186+00:00",
+      "last_updated": "2026-04-02T15:45:04.071376+00:00",
       "gate_verified": false
     },
     "decoupling": {
       "path": "skills\\decoupling.md",
       "sha256": "7a90c4c9c465cecbedf38ce9d4ab796951cd5444efd55856ce8d15bf7523b56c",
-      "last_updated": "2026-03-31T20:01:50.090330+00:00",
+      "last_updated": "2026-04-02T15:45:04.071455+00:00",
       "gate_verified": false
     },
     "evaluation": {
       "path": "skills\\evaluation.md",
       "sha256": "866d9cc3ddaf384df86a044b36bcadad8feadbacc5b21cad11d1f5b2e8e02739",
-      "last_updated": "2026-03-31T20:01:50.090468+00:00",
+      "last_updated": "2026-04-02T15:45:04.071528+00:00",
       "gate_verified": false
     },
     "fault-recovery": {
       "path": "skills\\fault-recovery.md",
       "sha256": "39c790734ada7d61a55c153ed08129a8bf02aa13f9261ac57959cadfbf1955d1",
-      "last_updated": "2026-03-31T20:01:50.090639+00:00",
+      "last_updated": "2026-04-02T15:45:04.071619+00:00",
       "gate_verified": false
     },
     "framework-quality": {
       "path": "skills\\framework-quality.md",
       "sha256": "0a011e8fb48dd6c0b6a2974241596ed03c3ba121171d9b301616dacb9bbaa82f",
-      "last_updated": "2026-03-31T20:01:50.090782+00:00",
+      "last_updated": "2026-04-02T15:45:04.071701+00:00",
       "gate_verified": false
     },
     "init": {
       "path": "skills\\init.md",
-      "sha256": "cfb824234141837a23c8aae5ac8b44e4d72b6367a4d67d15cd2326c1f2fd6522",
-      "last_updated": "2026-03-31T20:01:50.090932+00:00",
+      "sha256": "b81091be3d5be5ced9efa4c7952c9a6b6b9676100441ba45a9552341581d7519",
+      "last_updated": "2026-04-02T15:45:04.071808+00:00",
       "gate_verified": false
     },
     "inter-agent-protocol": {
       "path": "skills\\inter-agent-protocol.md",
       "sha256": "5201730c7588777dba8895d21fc9d713d20ceeff2758c93cf29cd45dfcb35c33",
-      "last_updated": "2026-03-31T20:01:50.091062+00:00",
+      "last_updated": "2026-04-02T15:45:04.071895+00:00",
       "gate_verified": false
     },
     "layered-architecture": {
       "path": "skills\\layered-architecture.md",
       "sha256": "3f21320f0a5c6962fdab9d6d575d41962c3ab361ee822fa01a541c091ccd1308",
-      "last_updated": "2026-03-31T20:01:50.091198+00:00",
+      "last_updated": "2026-04-02T15:45:04.071976+00:00",
       "gate_verified": false
     },
     "model-abstraction": {
       "path": "skills\\model-abstraction.md",
       "sha256": "39ea12a5c1e6f60b3f6b7d31f37e584a0003617864ecb163a021c9cd323b08fb",
-      "last_updated": "2026-03-31T20:01:50.091344+00:00",
+      "last_updated": "2026-04-02T15:45:04.072052+00:00",
       "gate_verified": false
     },
     "multi-provider": {
       "path": "skills\\multi-provider.md",
       "sha256": "b2689f435d54a8fa6b83aeeab6584c7866139132fd4b3aa79e8bfb6cba706a05",
-      "last_updated": "2026-03-31T20:01:50.091486+00:00",
+      "last_updated": "2026-04-02T15:45:04.072125+00:00",
       "gate_verified": false
     },
     "observability": {
       "path": "skills\\observability.md",
       "sha256": "0669616c7a883ace19eef7594631c895423ac48e9a0d45d805bdbf24693b2161",
-      "last_updated": "2026-03-31T20:01:50.091662+00:00",
+      "last_updated": "2026-04-02T15:45:04.072224+00:00",
       "gate_verified": false
     },
     "orchestration": {
       "path": "skills\\orchestration.md",
       "sha256": "e51b5844d4c17496cc2699981e63170fc37efe33592b00a7a1d6cd81d1db2ab0",
-      "last_updated": "2026-03-31T20:01:50.091819+00:00",
+      "last_updated": "2026-04-02T15:45:04.072315+00:00",
       "gate_verified": false
     },
     "product-docs": {
       "path": "skills\\product-docs.md",
       "sha256": "ee9935b97b40eebf0dc973a31c457a4ef79d4923758542fbc67d6ac44db0be31",
-      "last_updated": "2026-03-31T20:01:50.091972+00:00",
+      "last_updated": "2026-04-02T15:45:04.072401+00:00",
       "gate_verified": false
     },
     "production-readiness": {
       "path": "skills\\production-readiness.md",
       "sha256": "cc30447bb015c816385aabce7689ca23557307199aeda66031cbf9fc68a63c7f",
-      "last_updated": "2026-03-31T20:01:50.092142+00:00",
+      "last_updated": "2026-04-02T15:45:04.072508+00:00",
       "gate_verified": false
     },
     "research-methodology": {
       "path": "skills\\research-methodology.md",
       "sha256": "83fda0327faa26d1c3d4ad813f3f491961d169df25e5422e5cba91fa6974cf63",
-      "last_updated": "2026-03-31T20:01:50.092283+00:00",
+      "last_updated": "2026-04-02T15:45:04.072590+00:00",
       "gate_verified": false
     },
     "rust-tauri-ci": {
       "path": "skills\\rust-tauri-ci.md",
       "sha256": "5db0fba1238e2a7f7a9a2703bd8ad0999675b0880fe18b2015b6419bd089279c",
-      "last_updated": "2026-03-31T20:01:50.092452+00:00",
+      "last_updated": "2026-04-02T15:45:04.072682+00:00",
       "gate_verified": false
     },
     "session-continuity": {
       "path": "skills\\session-continuity.md",
       "sha256": "bf9ffe37aba2b781a442240b9516213249eb73bc37cc84822f35eb9459edb06a",
-      "last_updated": "2026-03-31T20:01:50.092630+00:00",
+      "last_updated": "2026-04-02T15:45:04.072779+00:00",
       "gate_verified": false
     },
     "source-evaluation": {
       "path": "skills\\source-evaluation.md",
       "sha256": "ab08901d1fc76ba6534920cc9647e54ee287983bde67c7960924b1fbb88e4278",
-      "last_updated": "2026-03-31T20:01:50.092764+00:00",
+      "last_updated": "2026-04-02T15:45:04.072851+00:00",
       "gate_verified": false
     },
     "standards": {
       "path": "skills\\standards.md",
       "sha256": "ce1af2cf0583c84717b4022817f28ffda73e8f48a0961b948e7d044f7adae7c9",
-      "last_updated": "2026-03-31T20:01:50.092910+00:00",
+      "last_updated": "2026-04-02T15:45:04.072935+00:00",
       "gate_verified": false
     },
     "tech_spec_sheet": {
       "path": "skills\\tech_spec_sheet.md",
       "sha256": "4efd259613709eb1537110254cd4907c39eb4bcc489be01a7f90b4da21f2dcc6",
-      "last_updated": "2026-03-31T20:01:50.093061+00:00",
+      "last_updated": "2026-04-02T15:45:04.073033+00:00",
       "gate_verified": false
     },
     "testing": {
       "path": "skills\\testing.md",
       "sha256": "f10b7e84b2174bf5c7ed9544ba4959d3652f399c478bf46374d462a1540e3883",
-      "last_updated": "2026-03-31T20:01:50.093234+00:00",
+      "last_updated": "2026-04-02T15:45:04.073117+00:00",
       "gate_verified": false
     },
     "worktree-automation": {
       "path": "skills\\worktree-automation.md",
       "sha256": "37c6556bf609cf4f8ce8c455d88bde85180f8fcb76cd3bbb38024d5581cae3e5",
-      "last_updated": "2026-03-31T20:01:50.093363+00:00",
+      "last_updated": "2026-04-02T15:45:04.073181+00:00",
       "gate_verified": false
     }
   }
