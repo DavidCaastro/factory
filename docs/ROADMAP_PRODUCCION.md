@@ -20,8 +20,8 @@
 | **Preparación para Producción** | **61.7 / 100** | **76.3 / 100** | **+14.6** |
 
 > Actualizado: 2026-03-16. Metodología: revisión estructural de gaps + validación con piv-challenge (98.29% test coverage).
-> Límites de score: Testabilidad no llega a 90 porque primer ciclo FORMAL (AuditAgent FASE 8) aún no ejecutado.
-> Escalabilidad limitada: V-6 (2 objetivos paralelos) pendiente.
+> Límites de score: Testabilidad mejorada tras primer ciclo formal completado (OBJ-003, 2026-04-02 — 18/18 gates, 0 rechazos).
+> Escalabilidad validada: V-6 completado (OBJ-002 + OBJ-003 en paralelo real, sin conflictos de merge).
 
 ### Comparación de Mercado
 
@@ -33,7 +33,7 @@
 | Semantic Kernel | Bajo | Ninguno | Parcial | ✓ | ~74/100 |
 | AutoGen (Microsoft) | Medio | Básico | Ninguno | ✓ | ~72/100 |
 | LangGraph (LangChain) | Bajo | Ninguno | Ninguno | ✓ | ~71/100 |
-| **PIV/OAC v3.2** | **Muy Alto** | **Completo** | **Completo** | **✓** | **~72/100** |
+| **PIV/OAC v4.0** | **Muy Alto** | **Completo** | **Completo** | **✓** | **~72/100** |
 | CrewAI | Bajo | Ninguno | Ninguno | ✓ | ~65/100 |
 | MetaGPT | Medio-Alto | Parcial | Ninguno | ✓ | ~63/100 |
 | OpenHands | Muy bajo | Ninguno | Ninguno | ✗ | ~51/100 |

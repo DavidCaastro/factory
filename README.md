@@ -1,6 +1,6 @@
 # PIV/OAC — Paradigma de Intencionalidad Verificable / Orquestación Atómica de Contexto
 
-> **Version:** v3.2 | **Rama directiva:** `agent-configs` | **SDK Python:** `piv-oac`
+> **Version:** v4.0 | **Rama directiva:** `agent-configs` | **SDK Python:** `piv-oac`
 > Esta rama contiene exclusivamente la configuración del sistema de agentes. No contiene código de aplicación.
 > El código producido por este marco vive en las ramas artifact (`main`, `staging`, `feature/*`).
 
@@ -233,7 +233,7 @@ Cualquier agente puede solicitar escalado si detecta que su tarea supera su capa
 
 Resuelve la "amnesia agéntica": pérdida de decisiones técnicas entre sesiones.
 
-- **Escritura exclusiva:** Solo AuditAgent escribe en `engram/session_learning.md`.
+- **Escritura exclusiva:** Solo AuditAgent escribe en los átomos de `engram/`.
 - **Lectura libre:** Cualquier agente puede consultarlo al inicio de una tarea.
 - **Contenido:** Decisiones técnicas, patrones reutilizables, resultado de gates, observaciones para la próxima sesión.
 - **No contiene:** Ningún valor del vault, ninguna credencial, ningún dato sensible.
@@ -255,42 +255,104 @@ Resuelve la "amnesia agéntica": pérdida de decisiones técnicas entre sesiones
 ```
 agent-configs/
 │
-├── CLAUDE.md                         ← Instrucciones operativas cargadas automáticamente
-│                                        por Claude Code en cada sesión (entrypoint)
-│
-├── agent.md                          ← Marco operativo completo PIV/OAC v3.2
-│
-├── project_spec.md                   ← Fuente de verdad activa (RF + DAG)
-│                                        Actualmente: Mini Platform API v2.0 (RF-01 a RF-17)
-│
+├── CLAUDE.md                         ← Entrypoint operativo (carga obligatoria por Claude Code)
+├── LAYERS.md                         ← Contrato de separación de capas (framework/proyecto/runtime)
+├── agent.md                          ← Marco operativo completo PIV/OAC v4.0
 ├── security_vault.md                 ← Acceso restringido (Zero-Trust)
 │
-├── skills/
+├── contracts/                        ← Primitivas canónicas compartidas (CAPA 1 — FRAMEWORK)
+│   ├── gates.md                     ← Fuente única de Gate 1, 2, 2b, 3
+│   ├── models.md                    ← Tabla de asignación de modelos por agente
+│   ├── evaluation.md                ← Rubric de scoring 0-1 + resource policy + schema JSONL
+│   └── parallel_safety.md           ← Reglas de aislamiento para grupos paralelos
+│
+├── specs/                            ← Contrato de Ejecución Verificable
+│   ├── _templates/                  ← Plantillas inmutables del framework (nunca modificar)
+│   └── active/                      ← Specs del proyecto activo (gitignored en agent-configs)
+│
+├── skills/                           ← Skills de carga perezosa por agente (~28 skills)
 │   ├── orchestration.md             ← Construcción de DAG (Master Orchestrator)
-│   ├── layered-architecture.md      ← Arquitectura por capas (Domain Orchestrators)
+│   ├── agent-factory.md             ← Protocolo AgentFactory — instanciación controlada
+│   ├── inter-agent-protocol.md      ← PMIA, HMAC, TTL de contexto heredado
+│   ├── context-management.md        ← Lazy loading, CSP, VETO_SATURACIÓN
+│   ├── session-continuity.md        ← Checkpoints, triggers T-a/T-b/T-c
+│   ├── cost-control.md              ← TokenBudgetReport, caps por nivel
+│   ├── observability.md             ← Telemetría OTEL, trazabilidad
+│   ├── framework-quality.md         ← Framework Quality Gate (MODO_META)
+│   ├── init.md                      ← Bootstrap de nuevo proyecto (execution_mode: INIT)
+│   ├── evaluation.md                ← Scoring 0-1, EvaluationAgent, precedentes
+│   ├── compliance.md                ← Perfil legal, GDPR, Documento de Mitigación
+│   ├── product-docs.md              ← Gate 3: README, deployment, referencia API
+│   ├── standards.md                 ← Definition of Done, cobertura, ruff
+│   ├── testing.md                   ← Tests pytest + pytest-cov
 │   ├── backend-security.md          ← Seguridad FastAPI + JWT + BCrypt
+│   ├── layered-architecture.md      ← Arquitectura por capas del producto
 │   ├── api-design.md                ← Contratos de API
-│   └── testing.md                   ← Tests pytest + httpx
+│   └── manifest.json                ← SHA-256 de cada skill (verificado por AtomLoader)
 │
-├── registry/
-│   ├── orchestrator.md              ← Master Orchestrator: protocolo + gates
-│   ├── security_agent.md            ← SecurityAgent: gates de seguridad + modo EpistemicAgent
-│   ├── audit_agent.md               ← AuditAgent: trazabilidad, logs veracidad, FASE 8
-│   ├── coherence_agent.md           ← CoherenceAgent: monitoreo + conflictos
-│   └── agent_taxonomy.md            ← Catálogo completo: ciclo de vida, modelos
+├── registry/                         ← Catálogo de agentes, protocolos y gates
+│   ├── orchestrator.md              ← Master Orchestrator
+│   ├── security_agent.md            ← SecurityAgent (Gate 2 + veto)
+│   ├── audit_agent.md               ← AuditAgent (trazabilidad, FASE 8, precedentes)
+│   ├── coherence_agent.md           ← CoherenceAgent (Gate 1, conflictos entre expertos)
+│   ├── standards_agent.md           ← StandardsAgent (Gate 2b, cobertura, calidad)
+│   ├── compliance_agent.md          ← ComplianceAgent (FASE 1 legal)
+│   ├── evaluation_agent.md          ← EvaluationAgent (scoring 0-1)
+│   ├── domain_orchestrator.md       ← Domain Orchestrators (coordinación por dominio)
+│   ├── logistics_agent.md           ← LogisticsAgent (TokenBudgetReport pre-DAG)
+│   ├── execution_auditor.md         ← ExecutionAuditor (observador out-of-band FASE 2→8)
+│   ├── documentation_agent.md       ← DocumentationAgent (Gate 3 docs)
+│   ├── research_orchestrator.md     ← ResearchOrchestrator (modo RESEARCH)
+│   └── agent_taxonomy.md            ← Catálogo completo: ciclo de vida, modelos, permisos
 │
-├── engram/
-│   └── session_learning.md          ← Memoria persistente (escritura: AuditAgent)
+├── engram/                           ← Sistema de memoria atomizada por agente
+│   ├── INDEX.md                     ← Context-Map (qué átomo carga qué agente)
+│   ├── VERSIONING.md                ← Protocolo de snapshot y rollback
+│   ├── core/                        ← Decisiones de arquitectura (Master Orchestrator)
+│   ├── security/                    ← Patrones de ataque/vulnerabilidades (SecurityAgent)
+│   ├── quality/                     ← Patrones de código y testing (StandardsAgent)
+│   ├── coherence/                   ← Patrones de conflictos entre expertos (CoherenceAgent)
+│   ├── compliance/                  ← Patrones de riesgo legal/ético (ComplianceAgent)
+│   ├── audit/                       ← Historial de gates y cobertura de RF (AuditAgent)
+│   ├── domains/                     ← Knowledge específico por dominio de proyecto
+│   └── precedents/                  ← Precedentes validados post-Gate 3 (AuditAgent exclusivo)
 │
-├── docs/
-│   ├── api-reference.md             ← Referencia de la API producida por el marco
-│   └── git-branch-protection.md     ← Reglas de protección de ramas recomendadas
+├── metrics/                          ← Métricas de sesión (AuditAgent, append-only)
+│   ├── sessions.md                  ← Registro histórico de sesiones
+│   ├── schema.md                    ← Esquema de métricas
+│   ├── cost-schema.md               ← Esquema de costos por sesión
+│   ├── execution_audit_schema.md    ← Schema ExecutionAuditReport
+│   └── precedents_schema.md         ← Schema de precedentes
 │
-├── logs_veracidad/                   ← Generados por AuditAgent al cierre de objetivo
-│   ├── acciones_realizadas.txt      ← Registro cronológico de acciones por agente
-│   ├── uso_contexto.txt             ← Eficiencia de contexto y tokens
-│   └── verificacion_intentos.txt    ← RF verificados contra código entregado
+├── compliance/                       ← Informes y paquetes de entrega (ComplianceAgent)
 │
+├── docs/                             ← Documentación del framework
+│   ├── CHANGELOG.md                 ← Changelog generado automáticamente
+│   ├── ROADMAP_PRODUCCION.md        ← Roadmap de madurez hacia producción v1.0
+│   ├── TUTORIAL_LEVEL2.md           ← Tutorial completo: objetivo Nivel 2 end-to-end
+│   ├── sdk-api.md                   ← Referencia de la API del SDK piv-oac
+│   ├── git-branch-protection.md     ← Reglas de protección de ramas recomendadas
+│   ├── architecture/                ← Diagramas de arquitectura del framework
+│   ├── flows/                       ← Flujos visuales por fase (FASE 0→8)
+│   ├── justification/               ← Análisis competitivo y ADRs
+│   └── redesign/                    ← Rationale v4.0 y decisiones de rediseño
+│
+├── scripts/                          ← Utilitarios de operación y validación
+│   ├── validate_env.py              ← Validación del entorno antes de ejecutar
+│   ├── validate_docs.py             ← Validación de documentación del framework
+│   ├── validate-specs.py            ← Validación de specs/active/
+│   ├── fase8_auto.py                ← Automatización de cierre FASE 8
+│   ├── generate_changelog.py        ← Generación de CHANGELOG desde commits
+│   ├── skill_manifest.py            ← Actualización de skills/manifest.json
+│   ├── bootstrap.sh                 ← Bootstrap de entorno inicial
+│   └── worktree-init.sh             ← Inicialización de worktrees de expertos
+│
+├── tools/                            ← Herramientas determinísticas del framework
+│
+├── sdk/                              ← SDK Python piv-oac (fuente local)
+│
+├── logs_veracidad/                   ← Logs de AuditAgent al cierre de objetivo
+├── logs_scores/                      ← Audit trail de scoring y EvaluationAgent
 └── worktrees/                        ← Temporal, no versionado (.gitignore)
 ```
 
@@ -302,7 +364,7 @@ agent-configs/
 1. Usuario entrega objetivo
          │
 2. Master Orchestrator (Opus)
-   └── Lee project_spec.md → valida RF
+   └── Lee specs/active/ → valida RF
    └── Construye DAG de dependencias
    └── Presenta DAG al usuario → espera confirmación
          │
@@ -334,22 +396,18 @@ agent-configs/
 
 ---
 
-## Resultado de la POC activa
+## Estado del framework
 
-La especificación activa (`project_spec.md`) ejecutó la construcción de la **Mini Platform API** en la rama `main`:
+**PIV/OAC v4.0** — framework en producción. OBJ-003 cerrado el 2026-04-02 con Gate compliance rate 1.0 (18/18 gates, 0 rechazos).
 
-| Métrica | Resultado |
+| Dimensión | Estado |
 |---|---|
-| Tests | 61 passed, 0 failed |
-| Cobertura | 93.48% (gate CI: 90% bloqueante) |
-| Secretos en código | 0 |
-| Gates ejecutados | 14 / 14 aprobados |
-| RF cumplidos | RF-01 a RF-17 — todos |
-| Ruff (lint) | 0 errores |
-| pip-audit (SCA) | 0 vulnerabilidades |
-| Calificación técnica | 79.8 / 100 (senior junior — MVP startup-ready) |
-
-El proceso completo está trazado en `gates/` (28 archivos de revisión) y `logs_veracidad/` (4 informes de auditoría).
+| Gates canónicos | Gate 1, 2, 2b, 3 definidos en `contracts/gates.md` |
+| Agentes catalogados | 13 agentes en `registry/` con modelos y permisos asignados |
+| Skills disponibles | ~28 skills en `skills/` con verificación SHA-256 vía `manifest.json` |
+| SDK Python | `piv-oac` disponible en `sdk/` e instalable vía `pip install piv-oac` |
+| Trazabilidad | `logs_veracidad/` + `metrics/sessions.md` + `engram/precedents/` |
+| Roadmap de madurez | `docs/ROADMAP_PRODUCCION.md` — documento vivo con scoring por dimensión |
 
 ---
 
@@ -357,7 +415,7 @@ El proceso completo está trazado en `gates/` (28 archivos de revisión) y `logs
 
 | | Rama directive (`agent-configs`) | Ramas artifact (`main`, `staging`, `feature/*`) |
 |---|---|---|
-| **Contiene** | CLAUDE.md, skills, registry, engram, project_spec.md | src/, tests/, docs/, gates/, logs_veracidad/ |
+| **Contiene** | CLAUDE.md, agent.md, skills/, registry/, engram/, contracts/, specs/_templates/ | src/, tests/, docs/, specs/active/, logs_veracidad/ |
 | **Produce** | Nada ejecutable — solo directivas | Código, tests, documentación, trazabilidad |
 | **Recibe merges de** | Nunca desde artifact | Desde la rama artifact inmediatamente inferior |
 | **Versionado** | Independiente del ciclo de entrega | Sigue el flujo execution → integration → delivery |

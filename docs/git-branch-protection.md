@@ -1,7 +1,7 @@
 # Recomendación: Protección de Ramas en GitHub
 
 > Documento de referencia para la configuración de branch protection rules del repositorio.
-> Aplica al repo `poc_piv_aoc_v1` (y a cualquier repo que use el marco PIV/OAC).
+> Aplica al repo `factory` (y a cualquier repo que use el marco PIV/OAC).
 > Configuración manual en: `https://github.com/<owner>/<repo>/settings/branches`
 
 ---
