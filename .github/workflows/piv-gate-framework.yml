@@ -374,7 +374,7 @@ jobs:
           matches=$(grep -rn "\[PENDIENTE\]" \
                       registry/ skills/ agent.md CLAUDE.md \
                       2>/dev/null \
-                    | grep -v '"\[PENDIENTE\]"\|`\[PENDIENTE\]`\|\[PENDIENTE\].*→\|→.*\[PENDIENTE\]\|PENDIENTE.*→' \
+                    | grep -v '"\[PENDIENTE\]"\|`\[PENDIENTE\]`\|\[PENDIENTE\].*→\|→.*\[PENDIENTE\]\|PENDIENTE.*→\|(grep de \[PENDIENTE\]' \
                     || true)
 
           if [ -n "$matches" ]; then
