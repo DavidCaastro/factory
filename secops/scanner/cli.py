@@ -142,7 +142,7 @@ def _print_t0(payload: dict) -> None:
 
 
 def _print_scan_result(result: dict) -> None:
-    print(f"✅ Scan completado")
+    print("✅ Scan completado")
     print(f"   Risk Level:       {result['risk_level']}")
     print(f"   Hallazgos totales:{result['findings_count']}")
     print(f"   Dependencias:     {result['deps_analyzed']}")

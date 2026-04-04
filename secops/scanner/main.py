@@ -158,7 +158,7 @@ def run_full_scan(
     from .ast_engine import parse_source_tree
     from .taint_analyzer import analyze as taint_analyze
     from .contract_verifier import analyze as contract_analyze
-    from .behavioral_delta import analyze as delta_analyze, build_call_graph
+    from .behavioral_delta import analyze as delta_analyze
     from .report import generate_report
     from .impact import write_impact
     from .bridge import write_payload

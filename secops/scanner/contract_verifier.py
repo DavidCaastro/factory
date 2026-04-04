@@ -12,7 +12,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from .ast_engine import ASTNode, ParseResult
+from .ast_engine import ParseResult
 from .taint_analyzer import Finding
 
 # Prefijos que indican semántica de restricción

@@ -7,7 +7,6 @@ Razona desde la estructura del flujo: fuente → [sanitización?] → sink.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
 
 from .ast_engine import ASTNode, ParseResult
 
