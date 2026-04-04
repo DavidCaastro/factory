@@ -91,6 +91,45 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.3.0] — 2026-04-04
+
+### Added
+
+**PMIA — Protocolo de Mensaje Inter-Agente** (`piv_oac.pmia`)
+- `GateVerdictMessage`, `EscalationMessage`, `CrossAlertMessage`, `CheckpointReqMessage`
+  — typed, immutable, JSON-serializable message dataclasses per `skills/inter-agent-protocol.md`
+- `IssueEntry` — 50-token enforced issue descriptor for gate verdicts
+- `ControlEnvironmentState` — snapshot of all control agent statuses for CHECKPOINT_REQ
+- `CryptoValidator` — HMAC-SHA256 sign + verify; raises `MessageTampered` on bad signature
+  (no retry) and `MessageExpired` on TTL exceeded (retry path)
+- `PMIABus` — in-process asyncio message bus: routes by type, validates structure + signature,
+  handles 2-retry protocol on `MALFORMED_MESSAGE`, escalates to MasterOrchestrator on exhaustion;
+  exposes `metrics` (total, retries, escalations, retry_rate)
+- `CROSS_ALERT_AUTHORIZED` — frozenset enforcing that only control agents emit lateral alerts
+- `MAX_TOKENS_PER_MESSAGE = 300` — hard limit constant
+
+**SafeLocalExecutor** (`piv_oac.tools`)
+- `SafeLocalExecutor` — allowlist-only subprocess runner; agents delegate to
+  `worktree_init` (`tools/worktree-init.sh`) and `validate_specs` (`tools/validate-specs.py`)
+  without exposing full LLM context; output truncated to 32 KB before returning to agents
+- `ExecutionDataFilter` — rejects credentials, shell injection patterns, path traversal,
+  and disallowed characters before any subprocess is created; `shell=False` always
+- `ExecutionResult` — structured result with `success`, `returncode`, `stdout`, `stderr`,
+  `truncated`, and `to_agent_summary()` for safe embedding in agent prompts
+
+**Onboarding**
+- `docs/getting-started.md` — full rewrite: visual agent hierarchy diagram, 5-minute
+  quick start, 4-level learning path (single agent → parallel pipeline → PMIA → local tools),
+  error handling guide, multi-provider and telemetry sections
+
+**Tests**
+- `tests/test_pmia.py` — 22 tests covering all message types, CryptoValidator, PMIABus routing
+- `tests/test_local_executor.py` — 22 tests covering filter and executor
+
+Total: 272 tests, coverage 90.53%
+
+---
+
 ## [Unreleased]
 
 ### Planned

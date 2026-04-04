@@ -19,7 +19,7 @@ Public exports:
     CyclicDependencyError — raised when the DAG contains a cycle
     PIVOACError          — base exception class
 
-Version: 0.2.0
+Version: 0.3.0
 """
 
 from piv_oac.agents.audit import AuditAgent
