@@ -8,11 +8,13 @@
 
 | Tipo de módulo | Umbral requerido | Herramienta | Estado actual |
 |---|---|---|---|
-| Motores de análisis (taint, contract, delta) | 100% líneas + ramas | pytest-cov | PENDIENTE |
-| Infraestructura (detect, fetcher, ast_engine) | ≥90% | pytest-cov | PENDIENTE |
-| Output Engine (report, impact, bridge) | ≥90% | pytest-cov | PENDIENTE |
-| CLI | ≥85% | pytest-cov | PENDIENTE |
-| Coverage gate en CI | ≥90% global | `--cov-fail-under=90` | PENDIENTE |
+| Motores de análisis (taint, contract, delta) | 100% líneas + ramas | pytest-cov | ✗ FALLA — taint:88%, contract:86%, delta:96% |
+| Infraestructura (detect, fetcher, ast_engine) | ≥90% | pytest-cov | ✗ FALLA — detect:42%, fetcher:19%, ast_engine:85% |
+| Output Engine (report, impact, bridge) | ≥90% | pytest-cov | ✗ FALLA PARCIAL — report:25%, impact:13%, bridge:95% ✓ |
+| CLI | ≥85% | pytest-cov | ✗ FALLA — cli:62% |
+| Coverage gate en CI | ≥90% global | `--cov-fail-under=90` | ✗ FALLA — cobertura global: 66% (50/50 tests pasan) |
+
+> Medición: `pytest-cov` ejecutado 2026-04-04 sobre commit `28153f5`. 50 tests, 0 fallos de ejecución. Cobertura insuficiente en módulos con poca cobertura de red/IO (fetcher, impact, report) y en paths de error de los motores.
 
 **Nota:** Los motores de análisis requieren 100% porque son el núcleo de seguridad del módulo. Un path no cubierto en `taint_analyzer.py` es un posible vector de falso negativo.
 
@@ -34,6 +36,8 @@ Los siguientes casos deben pasar antes de Gate 2. Son los criterios de aceptaci�
 | RF-14 sin terceros | Entorno sin pip-audit/bandit/semgrep | Scan completa sin errores | Todos |
 | RF-10 T0 vacío | Sin payload.json | Advertencia `UNKNOWN`, sin error fatal, <1s | Triggers |
 | RF-13 CLI nivel 3 | `--dep axios --method buildFullPath` | Solo hallazgos de esa función | CLI |
+| progress rendering | CLI con `--progress` | Barra de progreso en stdout, sin error | CLI + progress.py |
+| progress T0/scan | `python -m secops t0` / `scan` | ProgressEvent emitido por cada fase | main.py + progress.py |
 
 ---
 
@@ -41,11 +45,11 @@ Los siguientes casos deben pasar antes de Gate 2. Son los criterios de aceptaci�
 
 | Métrica | Umbral | Herramienta | Estado actual |
 |---|---|---|---|
-| Errores de linting | 0 | ruff | PENDIENTE |
-| Complejidad ciclomática por función | ≤10 | radon | PENDIENTE |
-| Longitud máxima de función | 50 líneas | revisión manual | PENDIENTE |
-| Dependencias de terceros en runtime | 0 | revisión de imports | PENDIENTE |
-| Uso de `eval` / `exec` en código propio | 0 | grep | PENDIENTE |
+| Errores de linting | 0 | ruff | NO VERIFICADO — pendiente ejecutar |
+| Complejidad ciclomática por función | ≤10 | radon | NO VERIFICADO — pendiente ejecutar |
+| Longitud máxima de función | 50 líneas | revisión manual | NO VERIFICADO |
+| Dependencias de terceros en runtime | 0 | revisión de imports | CUMPLIDO — `pyproject.toml:dependencies=[]` |
+| Uso de `eval` / `exec` en código propio | 0 | grep | NO VERIFICADO — pendiente ejecutar |
 
 ---
 
@@ -66,11 +70,11 @@ Los siguientes casos deben pasar antes de Gate 2. Son los criterios de aceptaci�
 
 | Elemento | Requisito | Estado actual |
 |---|---|---|
-| Funciones públicas de cada módulo | Docstring con Args, Returns, Raises | PENDIENTE |
-| `SECOPS.md` | Protocolo completo: config, triggers, formato de output | PENDIENTE |
-| Casos de test | Comentario explicando qué vulnerabilidad real reproduce | PENDIENTE |
-| `impact_analysis.jsonl` | Schema documentado con descripción de cada campo | PENDIENTE |
-| `payload.json` | Schema documentado con descripción de cada campo | PENDIENTE |
+| Funciones públicas de cada módulo | Docstring con Args, Returns, Raises | CUMPLIDO — docstrings presentes en funciones públicas |
+| `SECOPS.md` | Protocolo completo: config, triggers, formato de output | CUMPLIDO — `secops/SECOPS.md` contiene config, triggers y formato |
+| Casos de test | Comentario explicando qué vulnerabilidad real reproduce | CUMPLIDO — tests documentan CVEs y casos de referencia |
+| `impact_analysis.jsonl` | Schema documentado con descripción de cada campo | NO VERIFICADO — pendiente revisar |
+| `payload.json` | Schema documentado con descripción de cada campo | NO VERIFICADO — pendiente revisar |
 
 ---
 
