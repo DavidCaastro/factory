@@ -11,6 +11,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from typing import Callable
 
 SECOPS_DIR = Path(__file__).parent.parent
 BRIDGE_DIR = SECOPS_DIR / "bridge"
@@ -26,6 +27,7 @@ MAX_PAYLOAD_AGE_HOURS = 24
 # ---------------------------------------------------------------------------
 # T0 — Session start: solo lectura, sin escaneo
 # ---------------------------------------------------------------------------
+
 
 def t0_session_read() -> dict:
     """RF-10: Lee payload.json sin ejecutar ningún scanner.
@@ -64,6 +66,7 @@ def _is_stale(timestamp_iso: str) -> bool:
     if not timestamp_iso:
         return True
     from datetime import datetime, timezone, timedelta
+
     try:
         ts = datetime.fromisoformat(timestamp_iso)
         age = datetime.now(timezone.utc) - ts
@@ -76,6 +79,7 @@ def _is_stale(timestamp_iso: str) -> bool:
 # T1 — Pre-component: consulta de riesgo por componente
 # ---------------------------------------------------------------------------
 
+
 def t1_component_check(component_name: str) -> dict:
     """RF-12: Consulta riesgo de un componente/dependencia específica.
 
@@ -87,7 +91,11 @@ def t1_component_check(component_name: str) -> dict:
         risk_level='UNKNOWN' si no hay datos.
     """
     if not COMPONENT_RISK_FILE.exists():
-        return {"risk_level": "UNKNOWN", "component": component_name, "message": "Sin datos de riesgo. Ejecutar scan primero."}
+        return {
+            "risk_level": "UNKNOWN",
+            "component": component_name,
+            "message": "Sin datos de riesgo. Ejecutar scan primero.",
+        }
 
     try:
         data = json.loads(COMPONENT_RISK_FILE.read_text(encoding="utf-8"))
@@ -104,6 +112,7 @@ def t1_component_check(component_name: str) -> dict:
 # ---------------------------------------------------------------------------
 # T2 — Background scan completo
 # ---------------------------------------------------------------------------
+
 
 def t2_background_scan(project_root: Path) -> subprocess.Popen:
     """RF-11: Lanza scan completo en proceso hijo sin bloquear la sesión.
@@ -126,13 +135,20 @@ def t2_background_scan(project_root: Path) -> subprocess.Popen:
 # Scan completo (llamado por T2 y CLI)
 # ---------------------------------------------------------------------------
 
-def run_full_scan(project_root: Path, dep_filter: str | None = None, method_filter: str | None = None) -> dict:
+
+def run_full_scan(
+    project_root: Path,
+    dep_filter: str | None = None,
+    method_filter: str | None = None,
+    on_progress: Callable[[object], None] | None = None,
+) -> dict:
     """Ejecuta el scan completo: detect → fetch → parse → analizar → output.
 
     Args:
         project_root: Raíz del proyecto.
         dep_filter: Si se especifica, solo escanea esta dependencia.
         method_filter: Si se especifica con dep_filter, solo analiza este método/función.
+        on_progress: Callback opcional para actualizaciones de progreso.
 
     Returns:
         Dict con resumen del scan: findings_count, risk_level, report_path.
@@ -146,10 +162,22 @@ def run_full_scan(project_root: Path, dep_filter: str | None = None, method_filt
     from .report import generate_report
     from .impact import write_impact
     from .bridge import write_payload
+    from .progress import ProgressEvent
 
     all_findings = []
     dep_summary: dict[str, str] = {}
     languages_detected = []
+
+    def emit(completed_steps: int, total_steps: int, phase: str, message: str) -> None:
+        if on_progress is not None:
+            on_progress(
+                ProgressEvent(
+                    completed_steps=completed_steps,
+                    total_steps=total_steps,
+                    phase=phase,
+                    message=message,
+                )
+            )
 
     # Detección
     lang_map = detect_languages(project_root)
@@ -169,17 +197,35 @@ def run_full_scan(project_root: Path, dep_filter: str | None = None, method_filt
     if dep_filter:
         all_deps = [d for d in all_deps if d["name"].lower() == dep_filter.lower()]
 
+    processable_deps: list[tuple[dict, str]] = []
+    skipped_unpinned = 0
     for dep in all_deps:
         name = dep["name"]
         version_spec = dep.get("version_spec") or ""
-        language = dep["language"]
-
-        # Extraer versión exacta del spec (tomar lo que viene después del operador)
         version = version_spec.lstrip("=><~!").strip().split(",")[0] if version_spec else "latest"
         if not version or version == "latest":
-            continue  # Sin versión fija no podemos descargar fuente exacta
+            skipped_unpinned += 1
+            continue
+        processable_deps.append((dep, version))
+
+    total_steps = 3 + (len(processable_deps) * 3)
+    step = 1
+    emit(step, total_steps, "detect", "Detectando lenguajes y manifests")
+    step += 1
+    emit(
+        step,
+        total_steps,
+        "deps",
+        f"Dependencias detectadas: {len(all_deps)} (analizables: {len(processable_deps)}, sin version fija: {skipped_unpinned})",
+    )
+
+    for idx, (dep, version) in enumerate(processable_deps, start=1):
+        name = dep["name"]
+        language = dep["language"]
 
         dep_summary[name] = version
+        step += 1
+        emit(step, total_steps, "fetch", f"Descargando {name}@{version} ({idx}/{len(processable_deps)})")
 
         try:
             source_dir = fetch_dependency(name, version, language, DEPS_CACHE)
@@ -187,20 +233,29 @@ def run_full_scan(project_root: Path, dep_filter: str | None = None, method_filt
             # Hallazgo de integridad si es FetchIntegrityError
             if "SUPPLY CHAIN" in str(e) or "Hash" in str(e):
                 from .taint_analyzer import Finding
-                all_findings.append(Finding(
-                    finding_type="BEHAVIORAL_ANOMALY",
-                    severity="CRITICAL",
-                    dep_name=name,
-                    dep_version=version,
-                    file_path="",
-                    line=0,
-                    title=f"INTEGRITY_FAILURE: hash inválido al descargar {name}@{version}",
-                    description=str(e),
-                    evidence=str(e),
-                    motor="fetcher",
-                ))
+
+                all_findings.append(
+                    Finding(
+                        finding_type="BEHAVIORAL_ANOMALY",
+                        severity="CRITICAL",
+                        dep_name=name,
+                        dep_version=version,
+                        file_path="",
+                        line=0,
+                        title=f"INTEGRITY_FAILURE: hash inválido al descargar {name}@{version}",
+                        description=str(e),
+                        evidence=str(e),
+                        motor="fetcher",
+                    )
+                )
+            step += 1
+            emit(step, total_steps, "parse", f"Omitiendo parse para {name}@{version} por error de descarga")
+            step += 1
+            emit(step, total_steps, "analyze", f"Omitiendo analisis para {name}@{version}")
             continue
 
+        step += 1
+        emit(step, total_steps, "parse", f"Parseando codigo fuente de {name}@{version}")
         parse_results = parse_source_tree(source_dir, language)
 
         # Filtrar por método si se especifica
@@ -218,11 +273,15 @@ def run_full_scan(project_root: Path, dep_filter: str | None = None, method_filt
                 parse_results_old = parse_source_tree(old_dir, language)
 
         # Ejecutar los tres motores
+        step += 1
+        emit(step, total_steps, "analyze", f"Ejecutando motores en {name}@{version}")
         all_findings.extend(taint_analyze(parse_results, name, version))
         all_findings.extend(contract_analyze(parse_results, name, version))
         all_findings.extend(delta_analyze(parse_results_old, parse_results, name, version_old, version))
 
     # Output
+    step += 1
+    emit(step, total_steps, "output", "Generando reporte y archivos de salida")
     report_path = generate_report(all_findings, dep_summary, languages_detected, REPORTS_DIR)
     write_impact(all_findings, project_root, IMPACT_FILE)
     write_payload(all_findings, BRIDGE_DIR, dep_summary)
@@ -238,11 +297,11 @@ def run_full_scan(project_root: Path, dep_filter: str | None = None, method_filt
 def _filter_by_method(parse_results, method_name: str):
     """Filtra ParseResults para incluir solo nodos relacionados con el método especificado."""
     from .ast_engine import ParseResult
+
     filtered = []
     for result in parse_results:
         relevant_nodes = [
-            n for n in result.nodes
-            if n.name == method_name or (n.value and method_name in (n.value or ""))
+            n for n in result.nodes if n.name == method_name or (n.value and method_name in (n.value or ""))
         ]
         if relevant_nodes:
             filtered.append(ParseResult(result.file_path, result.language, relevant_nodes, result.parse_error))
