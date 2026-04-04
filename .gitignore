@@ -78,3 +78,6 @@ node_modules/
 # tests/ at repo root = product code, never committed to agent-configs
 # sdk/tests/ is part of the framework SDK and IS versioned
 /tests/
+# SecOps Scanner — vive en rama directiva propia (pendiente de crear)
+# Nunca versionar en agent-configs
+secops/
