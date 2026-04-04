@@ -13,6 +13,35 @@ MANIFEST_MAP = {
     "go": ["go.mod"],
 }
 
+# Orden de prioridad: el primer manifest encontrado es la fuente autoritativa.
+# pyproject.toml gana sobre requirements.txt (evita escanear el env completo).
+MANIFEST_PRIORITY = {
+    "python": ["pyproject.toml", "setup.cfg", "setup.py", "Pipfile", "requirements.txt"],
+    "javascript": ["package.json"],
+    "rust": ["Cargo.toml"],
+    "go": ["go.mod"],
+}
+
+
+def primary_manifests(project_root: str | Path) -> dict[str, list[Path]]:
+    """Retorna únicamente el manifest de mayor prioridad por lenguaje.
+
+    Evita combinar pyproject.toml (deps declaradas) con requirements.txt
+    (entorno pip completo), que causa ruido masivo de falsos positivos.
+
+    Returns:
+        Dict {lenguaje: [path al manifest prioritario]}.
+    """
+    root = Path(project_root)
+    result: dict[str, list[Path]] = {}
+    for language, priority_list in MANIFEST_PRIORITY.items():
+        for name in priority_list:
+            path = root / name
+            if path.exists():
+                result[language] = [path]
+                break
+    return result
+
 
 def detect_languages(project_root: str | Path) -> dict[str, list[Path]]:
     """Detecta lenguajes presentes en el proyecto a partir de manifests.

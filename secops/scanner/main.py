@@ -153,7 +153,7 @@ def run_full_scan(
     Returns:
         Dict con resumen del scan: findings_count, risk_level, report_path.
     """
-    from .detect import detect_languages, extract_dependencies
+    from .detect import detect_languages, primary_manifests, extract_dependencies
     from .fetcher import fetch_dependency, FetchError, FetchIntegrityError
     from .ast_engine import parse_source_tree
     from .taint_analyzer import analyze as taint_analyze
@@ -179,17 +179,23 @@ def run_full_scan(
                 )
             )
 
-    # Detección
+    # Detección — primary_manifests usa el manifest de mayor prioridad por lenguaje
+    # (pyproject.toml > requirements.txt) para evitar escanear el entorno pip completo.
     lang_map = detect_languages(project_root)
     languages_detected = list(lang_map.keys())
 
-    # Extraer dependencias de todos los manifests
+    # Extraer dependencias solo del manifest prioritario por lenguaje
+    scan_manifests = primary_manifests(project_root)
     all_deps: list[dict] = []
-    for lang, manifests in lang_map.items():
+    seen_names: set[str] = set()
+    for lang, manifests in scan_manifests.items():
         for manifest in manifests:
             try:
-                deps = extract_dependencies(manifest)
-                all_deps.extend(deps)
+                for dep in extract_dependencies(manifest):
+                    name_lower = dep["name"].lower()
+                    if name_lower not in seen_names:
+                        seen_names.add(name_lower)
+                        all_deps.append(dep)
             except Exception:
                 continue
 
