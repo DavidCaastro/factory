@@ -28,7 +28,7 @@ Orchestration Layer ← main.py — coordina Detection + Fetch + Analysis + Outp
       ↓
 Analysis Layer     ← taint_analyzer.py, contract_verifier.py, behavioral_delta.py
       ↓
-Infrastructure Layer ← detect.py, fetcher.py, ast_engine.py, call_tracer.py
+Infrastructure Layer ← detect.py, fetcher.py, ast_engine.py, progress.py
       ↓
 Output Layer       ← report.py, impact.py, bridge.py
 ```
@@ -49,7 +49,7 @@ secops/
 │   ├── detect.py                ← RF-01: detección de lenguajes por manifests
 │   ├── fetcher.py               ← RF-02: descarga y caché de fuente de dependencias
 │   ├── ast_engine.py            ← RF-03: parseo de fuente a AST por lenguaje
-│   ├── call_tracer.py           ← soporte para RF-04/06: construcción de call graph
+│   ├── progress.py              ← renderizado de barra de progreso en CLI (ProgressEvent + ConsoleProgressRenderer)
 │   ├── taint_analyzer.py        ← RF-04: flujo fuente→sink sin sanitización
 │   ├── contract_verifier.py     ← RF-05: opciones de config no enforceadas en todos los paths
 │   ├── behavioral_delta.py      ← RF-06: nuevos edges en call graph entre versiones
@@ -74,7 +74,7 @@ secops/
     └── YYYY-MM-DD_HH_scan.md    ← RF-07: reportes humano-legibles por scan
 ```
 
-**Archivos gitignored:** `deps_cache/`, `records/scans.jsonl`, `bridge/payload.json` — son artifacts de runtime, no se versionan en `sec-ops`. `impact_analysis.jsonl` SÍ se versiona (evidencia permanente para responsible disclosure).
+**Archivos gitignored:** `deps_cache/`, `secops/reports/` — son artifacts de runtime. `impact_analysis.jsonl` SÍ se versiona (evidencia permanente para responsible disclosure). `bridge/payload.json` y `bridge/component_risk.json` están actualmente en el repo (commit `28153f5`) — decisión pendiente de usuario: excluir del repo o mantener como estado inicial conocido.
 
 ---
 
@@ -85,7 +85,7 @@ secops/
 | T-01 | Infraestructura base: detect + fetcher + ast_engine | SECUENCIAL | 1 | — | skills/testing.md, skills/layered-architecture.md |
 | T-02 | Taint Analyzer | SECUENCIAL | 1 | T-01 | skills/backend-security.md, skills/testing.md |
 | T-03 | Contract Verifier | PARALELA con T-02 | 1 | T-01 | skills/testing.md |
-| T-04 | Behavioral Delta + Call Tracer | PARALELA con T-02 | 1 | T-01 | skills/testing.md |
+| T-04 | Behavioral Delta (call graph integrado en behavioral_delta.py) | PARALELA con T-02 | 1 | T-01 | skills/testing.md |
 | T-05 | Output Engine: report + impact + bridge | SECUENCIAL | 1 | T-02, T-03, T-04 | skills/standards.md |
 | T-06 | Triggers + CLI: main + cli + component_map | SECUENCIAL | 1 | T-05 | skills/testing.md |
 | T-07 | Integración SecurityAgent: actualizar registry | SECUENCIAL | 1 | T-06 | skills/inter-agent-protocol.md |
@@ -104,7 +104,7 @@ secops/
 - **Aislamiento:** Worktrees por experto (`./worktrees/<tarea>/<experto>/`)
 - **Rama de desarrollo:** `feature/secops-scanner` desde `main`
 - **Flujo de ramas:** `feature/secops-scanner/<experto>` → `feature/secops-scanner` → `staging` → `main`
-- **Post-main:** crear rama `sec-ops` como rama directive pasiva. Mover módulo. Configurar como standalone.
+- **Post-main:** crear rama `sec-ops` como rama directive pasiva. Mover módulo. Configurar como standalone. **[PENDIENTE — aún no ejecutado]**
 - **Modelo de razonamiento:** Sonnet para implementación de motores; Haiku para validaciones mecánicas y output templates
 
 ---
@@ -120,5 +120,6 @@ secops/
 | `contract_verifier.py` | Solo verifica contratos de config. No genera reports. |
 | `behavioral_delta.py` | Solo compara call graphs. No genera reports. |
 | `report.py` | Solo genera Markdown. No analiza. |
-| `bridge.py` | Solo genera payload.json. No analiza. |
+| `bridge.py` | Solo genera payload.json + component_risk.json. No analiza. |
 | `cli.py` | Solo parsea args y delega a main.py. |
+| `progress.py` | Solo renderiza barra de progreso en stdout. Sin lógica de negocio. |

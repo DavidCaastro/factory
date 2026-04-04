@@ -9,12 +9,12 @@
 
 | Categoría | Amenaza | Mitigación requerida | Estado |
 |---|---|---|---|
-| A03 — Injection | Código malicioso en dependencia analizada ejecuta código del host durante el parseo AST | El AST parser NUNCA ejecuta el código analizado. Solo lectura de texto → árbol sintáctico. Sin `eval`, sin `exec`, sin `importlib` sobre código de terceros. | PENDIENTE |
-| A04 — Insecure Design | El Source Fetcher descarga código arbitrario que podría contener payloads | Descarga a directorio aislado `deps_cache/` sin permisos de ejecución. El contenido nunca se importa como módulo Python. | PENDIENTE |
-| A05 — Security Misconfiguration | `payload.json` escribe datos sensibles (paths internos, secretos detectados) accesibles por otros procesos | `payload.json` contiene solo resúmenes y conteos. Ningún valor sensible literal. Paths absolutos truncados a relativos. | PENDIENTE |
-| A09 — Logging Failures | `impact_analysis.jsonl` registra evidencia que podría exponer estructura interna del proyecto | El campo `call_path` en JSONL usa paths relativos. Ningún token, credencial ni valor de variable de entorno en los registros. | PENDIENTE |
-| Supply Chain | El propio módulo SecOps Scanner puede ser comprometido vía dependencias de desarrollo | El módulo tiene CERO dependencias de terceros en runtime. Solo stdlib Python. Sin `pip install` en el path de producción. | PENDIENTE |
-| Behavioral | Un atacante que controla una dependencia puede intentar que el Behavioral Delta no detecte cambios (evasión) | El delta compara AST completo, no hashes de archivo. Cambios ofuscados en texto siguen siendo visibles en AST. | PENDIENTE |
+| A03 — Injection | Código malicioso en dependencia analizada ejecuta código del host durante el parseo AST | El AST parser NUNCA ejecuta el código analizado. Solo lectura de texto → árbol sintáctico. Sin `eval`, sin `exec`, sin `importlib` sobre código de terceros. | IMPLEMENTADO — `ast_engine.py` usa `ast.parse()` puro; sin `eval`/`exec` en todo el módulo |
+| A04 — Insecure Design | El Source Fetcher descarga código arbitrario que podría contener payloads | Descarga a directorio aislado `deps_cache/` sin permisos de ejecución. El contenido nunca se importa como módulo Python. | IMPLEMENTADO — `fetcher.py` extrae a `deps_cache/`, nunca hace `import` del contenido |
+| A05 — Security Misconfiguration | `payload.json` escribe datos sensibles (paths internos, secretos detectados) accesibles por otros procesos | `payload.json` contiene solo resúmenes y conteos. Ningún valor sensible literal. Paths absolutos truncados a relativos. | IMPLEMENTADO — `bridge.py:write_payload()` escribe solo `risk_level`, conteos y `summary_for_agent` |
+| A09 — Logging Failures | `impact_analysis.jsonl` registra evidencia que podría exponer estructura interna del proyecto | El campo `call_path` en JSONL usa paths relativos. Ningún token, credencial ni valor de variable de entorno en los registros. | IMPLEMENTADO — `impact.py:append_findings()` usa paths relativos en todos los campos |
+| Supply Chain | El propio módulo SecOps Scanner puede ser comprometido vía dependencias de desarrollo | El módulo tiene CERO dependencias de terceros en runtime. Solo stdlib Python. Sin `pip install` en el path de producción. | IMPLEMENTADO — `pyproject.toml:dependencies=[]` |
+| Behavioral | Un atacante que controla una dependencia puede intentar que el Behavioral Delta no detecte cambios (evasión) | El delta compara AST completo, no hashes de archivo. Cambios ofuscados en texto siguen siendo visibles en AST. | IMPLEMENTADO — `behavioral_delta.py:build_call_graph()` opera sobre nodos AST, no texto |
 
 ---
 
