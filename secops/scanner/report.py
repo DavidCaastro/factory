@@ -53,6 +53,7 @@ def _build_report(
 
     sections = [
         _header(timestamp, risk_level, counts),
+        _actionable_summary(sorted_findings),
         _stack_section(languages_detected, dep_summary),
         _summary_table(sorted_findings),
         _findings_detail(sorted_findings),
@@ -76,6 +77,70 @@ def _header(timestamp: datetime, risk_level: str, counts: dict) -> str:
 | LOW | {counts.get('LOW', 0)} |
 | INFO | {counts.get('INFO', 0)} |
 | **Total** | **{sum(counts.values())}** |"""
+
+
+def _actionable_summary(findings: list[Finding]) -> str:
+    """Síntesis accionable: agrupa por paquete, muestra top issues únicos.
+
+    Separa lo que requiere atención real de los hallazgos de baja prioridad.
+    Diseñado para ser leído en <2 minutos.
+    """
+    if not findings:
+        return "## Hallazgos accionables\n\n✅ Sin hallazgos. El proyecto no tiene dependencias con riesgo detectable."
+
+    # Agrupar por (paquete, tipo de hallazgo)
+    by_pkg: dict[str, list[Finding]] = {}
+    for f in findings:
+        pkg_key = f"{f.dep_name}@{f.dep_version}"
+        by_pkg.setdefault(pkg_key, []).append(f)
+
+    # Separar CRITICAL/HIGH (requieren acción) del resto
+    urgent = {pkg: fs for pkg, fs in by_pkg.items() if any(f.severity in ("CRITICAL", "HIGH") for f in fs)}
+    non_urgent = {pkg: fs for pkg, fs in by_pkg.items() if pkg not in urgent}
+
+    lines = ["## Hallazgos accionables\n"]
+
+    if urgent:
+        lines.append(f"### ⚠️ Requieren revisión ({len(urgent)} paquetes)\n")
+        for pkg, fs in sorted(urgent.items()):
+            critical = [f for f in fs if f.severity == "CRITICAL"]
+            high = [f for f in fs if f.severity == "HIGH"]
+            lines.append(f"**`{pkg}`** — {len(critical)} CRITICAL, {len(high)} HIGH")
+            # Mostrar hasta 3 issues únicos por paquete
+            seen_titles: set[str] = set()
+            shown = 0
+            for f in fs:
+                if f.severity not in ("CRITICAL", "HIGH"):
+                    continue
+                # Título normalizado para dedup visual
+                title_key = f.title.split("→")[1].strip() if "→" in f.title else f.title
+                if title_key in seen_titles:
+                    continue
+                seen_titles.add(title_key)
+                file_name = f.file_path.split("/")[-1].split("\\")[-1]
+                lines.append(f"  - `{f.finding_type}` → {f.title} (`{file_name}:{f.line}`)")
+                shown += 1
+                if shown >= 3:
+                    remaining = len(fs) - shown
+                    if remaining > 0:
+                        lines.append(f"  - _...y {remaining} hallazgos más. Ver tabla completa abajo._")
+                    break
+            lines.append("")
+    else:
+        lines.append("### ✅ Sin hallazgos CRITICAL o HIGH\n")
+
+    if non_urgent:
+        medium_pkgs = [pkg for pkg, fs in non_urgent.items() if any(f.severity == "MEDIUM" for f in fs)]
+        if medium_pkgs:
+            lines.append(f"### ℹ️ MEDIUM — revisar en próximo ciclo ({len(medium_pkgs)} paquetes)\n")
+            for pkg in sorted(medium_pkgs)[:5]:
+                count = sum(1 for f in non_urgent[pkg] if f.severity == "MEDIUM")
+                lines.append(f"- `{pkg}` — {count} hallazgos MEDIUM")
+            if len(medium_pkgs) > 5:
+                lines.append(f"- _...y {len(medium_pkgs) - 5} paquetes más_")
+            lines.append("")
+
+    return "\n".join(lines)
 
 
 def _stack_section(languages: list[str], deps: dict[str, str]) -> str:
