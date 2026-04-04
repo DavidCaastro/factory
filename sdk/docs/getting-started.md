@@ -247,7 +247,7 @@ Swap the LLM provider without changing any agent code:
 from piv_oac.client import get_client
 
 client = get_client("anthropic")                    # default, uses ANTHROPIC_API_KEY
-client = get_client("openai", api_key="sk-...")     # pip install piv-oac[openai]
+client = get_client("openai", api_key="<your-openai-key>")  # pip install piv-oac[openai]
 client = get_client("ollama", endpoint="http://localhost:11434")  # local Ollama
 ```
 
