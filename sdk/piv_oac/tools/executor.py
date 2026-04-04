@@ -8,6 +8,7 @@ before execution to block credentials, PII, and shell injection.
 Allowlisted scripts (defined in ALLOWED_COMMANDS):
     "worktree_init"    → tools/worktree-init.sh  (create / list / cleanup)
     "validate_specs"   → tools/validate-specs.py (JSON schema validation)
+    "run_pytest"       → pytest with coverage (Gate 2b Fase 1 mandatory)
 
 Usage
 -----
@@ -15,6 +16,13 @@ Usage
     result = await executor.run("worktree_init", ["create", "task-auth", "SpecialistAgent"])
     print(result.stdout)
     print(result.returncode)   # 0 = success
+
+    # Gate 2b — run pytest before invoking StandardsAgent
+    result = await executor.run("run_pytest", ["--cov=src"])
+    if not result.success:
+        # emit BLOQUEADO_POR_HERRAMIENTA — do NOT invoke StandardsAgent
+        ...
+    standards_prompt = f"pytest output:\\n{result.to_agent_summary()}"
 """
 
 from __future__ import annotations
@@ -35,6 +43,9 @@ logger = logging.getLogger(__name__)
 _ALLOWED_COMMANDS: dict[str, list[str]] = {
     "worktree_init": ["bash", "tools/worktree-init.sh"],
     "validate_specs": ["python", "tools/validate-specs.py"],
+    # Gate 2b — mandatory pytest before StandardsAgent LLM invocation
+    # Extra args (e.g. "--cov=src") are appended and filtered before execution.
+    "run_pytest": ["python", "-m", "pytest"],
 }
 
 _DEFAULT_TIMEOUT = 60.0   # seconds

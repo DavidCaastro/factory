@@ -11,8 +11,8 @@
 |--------|--------|-------|
 | Master Orchestrator | claude-opus-4-6 | Coordinación compleja, decisiones de DAG, veto ético |
 | SecurityAgent | claude-opus-4-6 | Veto crítico, razonamiento de seguridad de alta precisión |
-| AuditAgent | claude-sonnet-4-6 | Trazabilidad, logs estructurados, append-only |
-| CoherenceAgent | claude-sonnet-4-6 | Análisis de diffs, reconciliación de conflictos |
+| AuditAgent | claude-haiku-4-5 (rutinario) / claude-sonnet-4-6 (escalado) | RF coverage con checklist predefinido — output totalmente estructurado. Escalar a Sonnet si conflicto MAYOR o CRÍTICO |
+| CoherenceAgent | claude-haiku-4-5 (Gate 1) / claude-sonnet-4-6 (conflictos CRÍTICO) | Análisis de diffs con criterios fijos. Escalar a Sonnet cuando `conflict_type=CRITICAL` |
 | Domain Orchestrators | claude-sonnet-4-6 | Coordinación de dominio, gestión de worktrees |
 | StandardsAgent | claude-sonnet-4-6 | Calidad, linting, verificación de documentación |
 | ComplianceAgent | claude-sonnet-4-6 | Checklists de compliance, análisis legal |
@@ -42,7 +42,8 @@ Usar cuando:
 - Se producen logs, checklists o informes con criterios preestablecidos
 - Se analizan diffs, trazabilidad o coherencia entre artefactos
 
-Agentes que siempre usan Sonnet: AuditAgent, CoherenceAgent, Domain Orchestrators, StandardsAgent, ComplianceAgent, EvaluationAgent.
+Agentes que siempre usan Sonnet: Domain Orchestrators, StandardsAgent, ComplianceAgent, EvaluationAgent.
+Agentes que usan Sonnet como escalado: AuditAgent (conflicto MAYOR/CRÍTICO), CoherenceAgent (conflict_type=CRITICAL).
 
 ### claude-haiku-4-5 — Tareas atómicas con instrucciones específicas y output estructurado
 Usar cuando:
@@ -51,7 +52,7 @@ Usar cuando:
 - El volumen de trabajo lo justifica (muchos archivos de documentación similar)
 - El error no tiene consecuencias irreversibles en el objetivo
 
-Agentes que siempre usan Haiku: LogisticsAgent, ExecutionAuditor.
+Agentes que siempre usan Haiku: LogisticsAgent, ExecutionAuditor, AuditAgent (rutinario), CoherenceAgent (Gate 1 estándar).
 Agentes que pueden usar Haiku: Specialist Agents (complejidad baja), DocumentationAgent (modo estructurado).
 
 ### Specialist Agents — Criterio de selección
@@ -98,3 +99,4 @@ Un Domain Orchestrator puede asignar Haiku a un Specialist Agent si:
 |---|---|---|
 | 1.0 | 2026-03-22 | Creación inicial — extraído de CLAUDE.md + adición de EvaluationAgent |
 | 2.0 | 2026-04-02 | v4.0: añadidos LogisticsAgent (haiku) y ExecutionAuditor (haiku) |
+| 3.0 | 2026-04-04 | Auditoría coste: AuditAgent y CoherenceAgent migrados a haiku por defecto; sonnet como escalado para conflictos MAYOR/CRÍTICO |

@@ -94,6 +94,7 @@ class TestSafeLocalExecutor:
     def test_allowed_commands_defined(self):
         assert "worktree_init" in SafeLocalExecutor.ALLOWED_COMMANDS
         assert "validate_specs" in SafeLocalExecutor.ALLOWED_COMMANDS
+        assert "run_pytest" in SafeLocalExecutor.ALLOWED_COMMANDS
 
     def test_execution_result_success_property(self):
         result = ExecutionResult(

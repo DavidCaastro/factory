@@ -1,7 +1,49 @@
 # Contracts — Gates
 > Fuente canónica de todos los gates del framework PIV/OAC.
 > Los archivos de registry/ referencian este archivo por sección, no duplican su contenido.
-> Versión: 1.0 | Generado en: T1 del redesign PIV/OAC v3.2
+> Versión: 2.0 | Actualizado en: OBJ-003 auditoría v4.0
+
+---
+
+## Gate 0 — Fast-track (solo Nivel 1)
+
+**Responsable:** SecurityAgent (modo rápido — solo herramientas determinísticas)
+**Precondición:** Clasificación Nivel 1 confirmada (≤2 archivos, sin arquitectura nueva, RF claro, riesgo bajo)
+**Postcondición exitosa:** Cambio puede avanzar directamente a staging sin Gate 2 completo
+**Timeout máximo:** 60 segundos
+**Prohibido:** Análisis LLM — solo ejecución de herramientas determinísticas
+
+### Checklist Gate 0 — Fast-track
+
+```
+FAST_TRACK_GATE — Nivel 1
+Archivos afectados: <lista ≤2>
+RF que respalda el cambio: <RF-XX>
+
+[ ] [TOOL] grep: 0 credenciales literales en los archivos afectados
+[ ] [TOOL] grep: ningún factor de riesgo de la matriz Nivel 1 se activa en el diff
+[ ] [SYNTAX] Archivo(s) sintácticamente válidos (python -m py_compile / equivalente)
+[ ] Scope confirmado: ≤2 archivos, sin dependencias nuevas, sin impacto en seguridad
+
+FAST_TRACK_VERDICT: APROBADO | RECHAZADO | UPGRADE_A_NIVEL_2
+RAZÓN (si rechazado o upgrade): <motivo específico>
+```
+
+### Escalado automático
+
+| Veredicto | Acción |
+|---|---|
+| `APROBADO` | Cambio avanza directo a staging; AuditAgent registra en background |
+| `RECHAZADO` | Detener ejecución — reportar al usuario |
+| `UPGRADE_A_NIVEL_2` | Reclasificar automáticamente → activar orquestación completa |
+
+> **Nota:** UPGRADE_A_NIVEL_2 ocurre cuando el diff revela un factor de riesgo que no era visible en la descripción inicial (p.ej. el archivo toca autenticación o modifica un endpoint público). El Master notifica al usuario antes de continuar.
+
+### Circuit Breaker — Fast-track
+
+`MAX_GATE_REJECTIONS = 3` aplica también al Gate 0.
+Tres rechazos consecutivos en Nivel 1 → circuit abre → UPGRADE_A_NIVEL_2 obligatorio.
+Ver: `GateCircuitBreaker` en SDK (`piv_oac.circuit_breaker`).
 
 ---
 
@@ -275,9 +317,21 @@ grep -rn "token\s*=\s*['\"][^$]" "${SRC_PATH}/"
 
 # CVEs en dependencias — usar variable del entorno detectado
 ${PIP_AUDIT_CMD} --requirement requirements.txt
+
+# Tests + cobertura — OBLIGATORIO antes de invocar StandardsAgent (LLM)
+# Ejecutar vía SafeLocalExecutor("run_pytest") cuando SDK activo; directo en CI
+${PYTEST_CMD} --cov=${SRC_PATH} --cov-report=term-missing -q
+# Capturar: cobertura total (%), tests passed/failed, líneas sin cobertura
+# Si pytest falla (returncode != 0): reportar BLOQUEADO_POR_HERRAMIENTA — no invocar StandardsAgent
 ```
 
 Si cualquier herramienta no puede ejecutarse → reportar `BLOQUEADO_POR_HERRAMIENTA` al Domain Orchestrator. No emitir veredicto hasta resolución.
+
+**Regla pytest — Gate 2b:**
+- El output real de `pytest-cov` (cobertura %, tests pasados/fallados) se inyecta en el prompt de StandardsAgent.
+- StandardsAgent NO estima ni infiere la cobertura — solo valida el output recibido de la herramienta.
+- Si pytest no se puede ejecutar → StandardsAgent emite `BLOQUEADO_POR_HERRAMIENTA`, no `RECHAZADO`.
+- Integración SDK: `SafeLocalExecutor.run("run_pytest", ["--cov=<src_path>"])` (ver `piv_oac.tools`).
 
 **Distinción N/D vs BLOQUEADO_POR_HERRAMIENTA:**
 - `BLOQUEADO_POR_HERRAMIENTA` aplica en Gate 2b (durante ejecución): el gate NO emite veredicto hasta resolución.
@@ -315,16 +369,21 @@ VEREDICTO: APROBADO | RECHAZADO
 
 ### Checklist StandardsAgent — Gate 2b
 
+> **Precondición:** StandardsAgent no puede ser invocado sin el output real de `pytest-cov`
+> inyectado en su prompt (Fase 1 obligatoria). Ver "Regla pytest" arriba.
+
 ```
 CHECKLIST GATE 2b — CÓDIGO (StandardsAgent):
+[ ] [TOOL] pytest: <N> passed, <M> failed — 0 fallos permitidos
 [ ] [TOOL] pytest-cov: cobertura total ≥ 80% (umbral mínimo — threshold ajustable en pyproject.toml)
 [ ] [TOOL] ruff: 0 errores de linting
 [ ] [LLM] Todos los RFs del plan tienen al menos un test que los ejercita
 [ ] [LLM] Tests no dependen de datos de producción ni de credenciales reales
 [ ] [LLM] Documentación inline suficiente para las funciones públicas del módulo
 
-VEREDICTO: APROBADO | RECHAZADO
-COBERTURA: <valor % real de herramienta>
+VEREDICTO: APROBADO | RECHAZADO | BLOQUEADO_POR_HERRAMIENTA
+PYTEST_RESULT: <N passed, M failed — de herramienta>
+COBERTURA: <valor % real de herramienta — nunca estimado>
 RUFF_ERRORES: <n>
 UMBRAL_COBERTURA: 80% (o valor configurado en pyproject.toml)
 ```
@@ -462,6 +521,19 @@ Nunca ejecutar Gate 3 con ambigüedad.
 ---
 
 ## Protocolo de Escalado ante Rechazos
+
+### Circuit Breaker — MAX_GATE_REJECTIONS = 3
+
+Antes del escalado manual, el SDK aplica un circuit breaker automático:
+
+```
+MAX_GATE_REJECTIONS = 3  (configurable por instancia de GateCircuitBreaker)
+```
+
+- **1 o 2 rechazos:** comportamiento normal — devolver al Domain Orchestrator para revisión.
+- **3er rechazo:** `GateCircuitBreaker` abre el circuito, emite `EscalationMessage(reason_code="MAX_REJECTIONS")` a MasterOrchestrator, lanza `CircuitOpenError`. Pipeline se detiene.
+- Para reanudar después del circuito abierto: `GateCircuitBreaker.reset(gate)` tras resolver la causa raíz.
+- Implementación SDK: `piv_oac.circuit_breaker.GateCircuitBreaker`
 
 ### 1er rechazo (SecurityAgent o AuditAgent)
 - Devolver plan al Domain Orchestrator con razón específica.

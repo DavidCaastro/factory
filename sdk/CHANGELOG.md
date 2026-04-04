@@ -156,6 +156,29 @@ Total: ~296 tests
 
 ---
 
+## [0.4.1] — 2026-04-04
+
+### Changed
+
+**Model tiering (audit points #3 and #4)**
+- `AuditAgent` default model: `claude-sonnet-4-6` → `claude-haiku-4-5-20251001`
+  Rationale: RF coverage audit uses a fully predefined checklist — no complex reasoning needed.
+  Escalation path: callers pass `model="claude-sonnet-4-6"` for MAYOR/CRÍTICO conflicts.
+- `CoherenceAgent` default model: `claude-sonnet-4-6` → `claude-haiku-4-5-20251001`
+  Rationale: Gate-1 diff analysis with fixed criteria. Callers escalate to Sonnet for `conflict_type=CRITICAL`.
+
+**pytest mandatory in Gate 2b (audit point #2)**
+- `SafeLocalExecutor.ALLOWED_COMMANDS` now includes `"run_pytest"` →
+  `["python", "-m", "pytest"]` with filtered extra args
+- StandardsAgent must receive real `pytest-cov` output in its prompt (Fase 1 gate).
+  Emits `BLOQUEADO_POR_HERRAMIENTA` (not `RECHAZADO`) when pytest cannot run.
+- New contract field: `PYTEST_RESULT: <N passed, M failed>` (from tool, never estimated)
+
+**Fast-track Gate 0 (audit point #1)** — framework docs only (no SDK changes)
+- `contracts/gates.md`: new §Gate 0 — Fast-track with deterministic-only checklist,
+  `FAST_TRACK_VERDICT` enum, and auto-upgrade logic
+- `CLAUDE.md`: Protocolo Nivel 1 updated with Gate 0 step and escalation rules
+
 ## [Unreleased]
 
 ### Planned

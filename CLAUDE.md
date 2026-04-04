@@ -64,17 +64,33 @@ Cualquiera de estos criterios:
 
 ---
 
-## Protocolo Nivel 1
+## Protocolo Nivel 1 — Fast-track
 
 ```
 1. Confirmar RF que respalda el cambio
 2. Crear rama de tarea: git checkout -b fix/<nombre> desde la rama base correspondiente
-3. Cargar solo el archivo a modificar
-4. Ejecutar el cambio en esa rama
-5. Promover hacia adelante: fix/<nombre> → staging → main
+3. Cargar solo el archivo(s) a modificar (máx. 2)
+4. Gate 0 — Fast-track (SecurityAgent, modo determinístico, 60s timeout):
+   - grep: 0 credenciales literales en el diff
+   - grep: ningún factor de riesgo de la matriz Nivel 1 se activa
+   - Validación sintáctica del archivo modificado
+   Si FAST_TRACK_VERDICT: APROBADO → continuar
+   Si FAST_TRACK_VERDICT: RECHAZADO → detener, reportar al usuario
+   Si FAST_TRACK_VERDICT: UPGRADE_A_NIVEL_2 → reclasificar + notificar usuario
+5. Ejecutar el cambio en la rama
+6. Merge directo a staging (sin Gate 2 completo — Gate 0 ya valida)
+   AuditAgent registra en background post-merge
+7. Promover staging → main con Gate 3 estándar (confirmación humana)
    - NUNCA aplicar cambios directamente sobre staging o main
-6. Si la solución es patrón reutilizable → entrada en engram
+8. Si la solución es patrón reutilizable → entrada en engram
 ```
+
+> **Fast-track Gate 0:** No hay análisis LLM — solo herramientas determinísticas. Elimina la
+> burocracia de orquestación para micro-tareas sin sacrificar la seguridad mínima.
+> Protocolo completo: `contracts/gates.md §Gate 0`.
+
+> **Nota de escalado:** Si durante la ejecución del paso 5 el scope crece (más archivos
+> afectados, dependencias nuevas) → escalado automático a Nivel 2 antes de continuar.
 
 ---
 
@@ -145,8 +161,8 @@ Ver tabla canónica en `contracts/models.md`. Resumen inline:
 |---|---|
 | Master Orchestrator | claude-opus-4-6 |
 | Security Agent | claude-opus-4-6 |
-| Audit Agent | claude-sonnet-4-6 |
-| Coherence Agent | claude-sonnet-4-6 |
+| Audit Agent | claude-haiku-4-5 (rutinario) / claude-sonnet-4-6 (escalado) |
+| Coherence Agent | claude-haiku-4-5 (Gate 1) / claude-sonnet-4-6 (conflictos CRÍTICO) |
 | Domain Orchestrators | claude-sonnet-4-6 |
 | StandardsAgent | claude-sonnet-4-6 |
 | ComplianceAgent | claude-sonnet-4-6 |

@@ -41,7 +41,7 @@ class CoherenceAgent(AgentBase):
     def __init__(
         self,
         client: anthropic.AsyncAnthropic,
-        model: str = "claude-sonnet-4-6",
+        model: str = "claude-haiku-4-5-20251001",
     ) -> None:
         super().__init__(client, model)
 
