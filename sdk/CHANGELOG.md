@@ -68,10 +68,32 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.2.0] — 2026-04-04
+
+### Added
+
+**Agents — pipeline support (closes registry gap vs agent-configs v4.0)**
+- `LogisticsAgent` — token budget estimator active in FASE 1 (Nivel 2 objectives);
+  produces `TOTAL_ESTIMATED_TOKENS`, `FRAGMENTATION_RECOMMENDED`, and
+  `WARNING_ANOMALOUS_ESTIMATE` when a task exceeds its cap.
+  Includes `TOKEN_CAPS` constants and `estimate_cost()` static helper.
+- `ExecutionAuditor` — passive out-of-band observer FASE 2→8; records
+  irregularities (GATE_SKIPPED, GATE_BYPASSED, PROTOCOL_DEVIATION,
+  TOKEN_OVERRUN, CONTEXT_SATURATION, UNAUTHORIZED_INSTANTIATION) without
+  intervening in gates. `generate_report()` always returns — never raises.
+- `DocumentationAgent` — temporary specialist that generates missing
+  product documentation for Gate 3 when StandardsAgent emits
+  `GATE_3_DOCS_BLOQUEADO`. Uses `[COMPLETAR: ...]` placeholders for
+  missing spec data.
+
+**Tests**
+- `tests/test_new_agents.py` — 18 tests covering all three new agents
+
+---
+
 ## [Unreleased]
 
-### Planned for 0.2.0
-- CLI: `piv-oac init`, `piv-oac run <objective>`
+### Planned
 - Integration tests against real Anthropic API (opt-in, requires `ANTHROPIC_API_KEY`)
 - Prometheus alerting rules for gate states
 - Grafana dashboard for agent spans
