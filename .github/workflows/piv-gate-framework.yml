@@ -1,12 +1,11 @@
 name: PIV/OAC — Artifact Branch Gates (staging → main)
 # =============================================================================
-# CI para ramas artefacto del producto activo.
-# Aplica independientemente de si el producto es una aplicación o una versión
-# del framework. La rama agent-configs es inmutable y no participa en este CI.
+# CI para ramas artefacto del framework PIV/OAC.
 #
 # Triggers:
-#   push → staging         : corre todos los gates al integrar trabajo
-#   pull_request → main    : corre todos los gates + valida que origen sea staging
+#   push → agent-configs   : gates estructurales del framework (sin SDK, sin merge gate)
+#   push → staging         : todos los gates al integrar trabajo al producto
+#   pull_request → main    : todos los gates + valida que origen sea staging
 #
 # Regla de promoción:
 #   staging → main ÚNICAMENTE cuando:
@@ -19,7 +18,7 @@ name: PIV/OAC — Artifact Branch Gates (staging → main)
 
 on:
   push:
-    branches: [staging]
+    branches: [agent-configs, staging]
   pull_request:
     branches: [main]
 
@@ -232,6 +231,7 @@ jobs:
   # ── Gate: SDK importable ─────────────────────────────────────────────────────
   validate-sdk:
     name: Gate — SDK importable
+    if: github.ref != 'refs/heads/agent-configs'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -413,6 +413,7 @@ jobs:
   # ── Gate 2b: SDK pytest coverage + semgrep ───────────────────────────────────
   gate-2b-sdk:
     name: "Gate 2b — SDK Tests + Security Scan"
+    if: github.ref != 'refs/heads/agent-configs'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -501,7 +502,7 @@ jobs:
   # ── Solicitud de merge staging → main (solo cuando CI de staging es verde) ──
   request-merge-to-main:
     name: Gate 3 — Request merge staging → main
-    if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/staging' && github.ref != 'refs/heads/agent-configs'
     needs:
       - validate-schemas
       - validate-agent-contracts
