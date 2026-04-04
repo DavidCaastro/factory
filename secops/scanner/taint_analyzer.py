@@ -78,6 +78,31 @@ SINKS_JS = {
     "fs.writeFile", "fs.appendFile", "fs.readFile",
 }
 
+# Paquetes donde ciertos sinks son patrones de diseño esperados (no vulnerabilidades).
+# Clave: prefijo de nombre de paquete (lowercase). Valor: sinks que son diseño normal.
+# Estos hallazgos se etiquetan DESIGN_PATTERN y se excluyen del conteo de riesgo real.
+KNOWN_DESIGN_PATTERNS: dict[str, set[str]] = {
+    # ORMs y drivers de base de datos — execute ES la API segura parametrizada
+    "sqlalchemy": {"execute", "cursor.execute"},
+    "alembic": {"execute", "cursor.execute"},
+    "asyncpg": {"execute", "cursor.execute"},
+    "aiosqlite": {"execute", "cursor.execute"},
+    "psycopg2": {"execute", "cursor.execute"},
+    "pymysql": {"execute", "cursor.execute"},
+    # Motores de templates — eval/exec son su razón de existir
+    "mako": {"eval", "exec", "compile"},
+    "jinja2": {"eval", "exec", "compile"},
+    "chameleon": {"eval", "exec", "compile"},
+    # Syntax highlighters — compilan regex sobre datos de entrada por diseño
+    "pygments": {"compile", "re.compile", "exec"},
+    # Librerías de serialización / parsing — procesan datos externos por diseño
+    "pyyaml": {"yaml.load"},
+    # Frameworks HTTP — el sink es su API pública
+    "aiohttp": {"aiohttp"},
+    "httpx": {"httpx.get", "httpx.post"},
+}
+
+
 # Nodos que indican sanitización / validación entre fuente y sink
 SANITIZERS_PYTHON = {
     "isinstance", "validate", "sanitize", "escape", "quote", "encode",
@@ -130,14 +155,24 @@ def analyze(
         dep_version: Versión de la dependencia analizada.
 
     Returns:
-        Lista de Finding. Vacía si no se detectan flujos taint.
+        Lista de Finding deduplicada. Vacía si no se detectan flujos taint.
     """
-    findings = []
+    raw: list[Finding] = []
     for result in parse_results:
         if result.parse_error:
             continue
-        findings.extend(_analyze_file(result, dep_name, dep_version))
-    return findings
+        raw.extend(_analyze_file(result, dep_name, dep_version))
+
+    # Deduplicar por (file_path, line, sink_base) donde sink_base es el último
+    # componente del nombre del sink (ej: "cursor.execute" y "execute" → mismo sink_base
+    # "execute"; pero "Buffer.from" y "decodeURIComponent" → bases distintas, se conservan).
+    seen: dict[tuple[str, int, str], Finding] = {}
+    for f in raw:
+        sink_part = f.title.split("→")[-1].strip().split(".")[-1].lower() if "→" in f.title else f.title.lower()
+        key = (f.file_path, f.line, sink_part)
+        if key not in seen or len(f.title) > len(seen[key].title):
+            seen[key] = f
+    return list(seen.values())
 
 
 def _analyze_file(result: ParseResult, dep_name: str, dep_version: str) -> list[Finding]:
@@ -177,6 +212,9 @@ def _analyze_file(result: ParseResult, dep_name: str, dep_version: str) -> list[
                     found_sanitizer = True
 
         if found_source and not found_sanitizer:
+            # Excluir si es patrón de diseño conocido del paquete
+            if _is_known_design_pattern(dep_name, node_name):
+                continue
             severity = _infer_severity_taint(node_name, found_source.name or "")
             findings.append(Finding(
                 finding_type="TAINT_FLOW",
@@ -196,6 +234,18 @@ def _analyze_file(result: ParseResult, dep_name: str, dep_version: str) -> list[
             ))
 
     return findings
+
+
+def _is_known_design_pattern(dep_name: str, sink_name: str) -> bool:
+    """Retorna True si el sink es un patrón de diseño esperado para este paquete."""
+    dep_lower = dep_name.lower().replace("-", "_").replace(".", "_")
+    for pkg_prefix, expected_sinks in KNOWN_DESIGN_PATTERNS.items():
+        if dep_lower.startswith(pkg_prefix):
+            sink_lower = sink_name.lower()
+            for expected in expected_sinks:
+                if sink_lower == expected or sink_lower.endswith("." + expected):
+                    return True
+    return False
 
 
 def _matches_any(name: str, pool: set[str]) -> bool:
