@@ -134,7 +134,9 @@ jobs:
           python-version: "3.11"
 
       - name: Install secops + dev dependencies
-        run: pip install --quiet -e ".[dev]" || pip install --quiet -e . pytest pytest-cov
+        run: |
+          pip install --quiet -e .
+          pip install --quiet pytest pytest-cov
 
       - name: Run pytest con cobertura global ≥85%
         run: |
