@@ -267,7 +267,43 @@ RAZÓN (si rechazado): <sesgo detectado, RQ irresolvable, scope ilimitado, etc.>
 
 **Responsables:** SecurityAgent + AuditAgent + StandardsAgent (paralelo real)
 **Precondición:** Gate 1 aprobado por CoherenceAgent (todos los expertos completos, sin conflictos)
+**Precondición adicional — CI Loop GREEN:** El CI Loop (`skills/ci-loop.md`) debe haber emitido
+`LOOP_GREEN` y su `LOOP_GREEN_REPORT` debe estar disponible **antes** de invocar este gate.
+Gate 2b no puede iniciarse sin ese reporte. Ver §Pre-Gate-2b CI Loop abajo.
 **Postcondición exitosa:** Domain Orchestrator ejecuta merge feature/<tarea> → staging
+
+### §Pre-Gate-2b CI Loop (obligatorio, bloqueante)
+
+```
+Gate 1 APROBADO
+      │
+      ▼
+[CI Loop — skills/ci-loop.md]     ← StandardsAgent lo ejecuta ANTES de Gate 2b
+      │
+  LOOP_GREEN?                       MAX_ITERATIONS=3; timeout 300s/iter
+      │
+  NO──┴──SÍ
+  │       │
+  │       ▼
+  │    LOOP_GREEN_REPORT disponible → invocar Gate 2b
+  │
+  ▼
+  LOOP_EXHAUSTED / LOOP_TIMEOUT → escalar a Master → decisión humana
+  [Gate 2b no se invoca hasta recibir nuevo LOOP_GREEN]
+```
+
+**Distinción crítica de estados (ver `skills/ci-loop.md §Taxonomía`):**
+
+| Código | Causa | Acción en Gate 2b |
+|---|---|---|
+| `TOOL_NOT_EXECUTABLE` | pytest no instalado, entorno roto | `BLOQUEADO_POR_HERRAMIENTA` — Gate 2b no puede proceder |
+| `TEST_FAILURE` | pytest ejecuta, tests fallan (exit ≠ 0) | CI Loop activo — Gate 2b no se invoca aún |
+| `COVERAGE_GAP` | tests pasan, cobertura < umbral | CI Loop activo — Gate 2b no se invoca aún |
+| `LOOP_GREEN` | tests pasan + cobertura ≥ umbral | Gate 2b procede con LOOP_GREEN_REPORT |
+
+> **La confusión `TEST_FAILURE → BLOQUEADO_POR_HERRAMIENTA` está eliminada.**
+> `BLOQUEADO_POR_HERRAMIENTA` aplica SOLO cuando la herramienta no puede ejecutarse.
+> Un test que falla es información válida — no bloquea el gate, activa el loop de corrección.
 
 ### Diagrama de flujo
 
@@ -294,6 +330,10 @@ requerida       feature/<tarea> → staging
 
 ### Fase 1 — Herramientas determinísticas (obligatoria antes del análisis LLM)
 
+**Nota:** pytest-cov ya fue ejecutado por el CI Loop (`skills/ci-loop.md`) antes de invocar Gate 2b.
+StandardsAgent recibe el `LOOP_GREEN_REPORT` pre-generado — **no re-ejecuta pytest**.
+La Fase 1 ejecuta las herramientas que el CI Loop no cubre: secretos y CVEs.
+
 **Paso previo obligatorio — cargar entorno detectado:**
 
 ```bash
@@ -318,23 +358,23 @@ grep -rn "token\s*=\s*['\"][^$]" "${SRC_PATH}/"
 # CVEs en dependencias — usar variable del entorno detectado
 ${PIP_AUDIT_CMD} --requirement requirements.txt
 
-# Tests + cobertura — OBLIGATORIO antes de invocar StandardsAgent (LLM)
-# Ejecutar vía SafeLocalExecutor("run_pytest") cuando SDK activo; directo en CI
-${PYTEST_CMD} --cov=${SRC_PATH} --cov-report=term-missing -q
-# Capturar: cobertura total (%), tests passed/failed, líneas sin cobertura
-# Si pytest falla (returncode != 0): reportar BLOQUEADO_POR_HERRAMIENTA — no invocar StandardsAgent
+# Tests + cobertura — YA EJECUTADO por CI Loop antes de Gate 2b
+# StandardsAgent consume LOOP_GREEN_REPORT; no re-ejecuta pytest aquí
+# Si LOOP_GREEN_REPORT no está disponible → BLOQUEADO_POR_HERRAMIENTA (CI Loop no completó)
 ```
 
-Si cualquier herramienta no puede ejecutarse → reportar `BLOQUEADO_POR_HERRAMIENTA` al Domain Orchestrator. No emitir veredicto hasta resolución.
+Si secretos o CVEs no pueden verificarse → reportar `BLOQUEADO_POR_HERRAMIENTA` al Domain Orchestrator.
 
-**Regla pytest — Gate 2b:**
-- El output real de `pytest-cov` (cobertura %, tests pasados/fallados) se inyecta en el prompt de StandardsAgent.
-- StandardsAgent NO estima ni infiere la cobertura — solo valida el output recibido de la herramienta.
-- Si pytest no se puede ejecutar → StandardsAgent emite `BLOQUEADO_POR_HERRAMIENTA`, no `RECHAZADO`.
-- Integración SDK: `SafeLocalExecutor.run("run_pytest", ["--cov=<src_path>"])` (ver `piv_oac.tools`).
+**Regla pytest — Gate 2b (actualizada):**
+- El `LOOP_GREEN_REPORT` generado por CI Loop es la fuente de verdad de cobertura y tests.
+- StandardsAgent valida el reporte — no ejecuta pytest de nuevo.
+- Si el reporte está ausente → `BLOQUEADO_POR_HERRAMIENTA` (el CI Loop no completó correctamente).
+- Si pytest **no pudo ejecutarse** en el CI Loop → `TOOL_NOT_EXECUTABLE` → `BLOQUEADO_POR_HERRAMIENTA`.
+- Si pytest **ejecutó y falló** en el CI Loop → `TEST_FAILURE` → CI Loop activo, Gate 2b no se invoca aún.
+- Integración SDK: CI Loop usa `SafeLocalExecutor.run("run_pytest", ["--cov=<src_path>"])` (ver `piv_oac.tools`).
 
 **Distinción N/D vs BLOQUEADO_POR_HERRAMIENTA:**
-- `BLOQUEADO_POR_HERRAMIENTA` aplica en Gate 2b (durante ejecución): el gate NO emite veredicto hasta resolución.
+- `BLOQUEADO_POR_HERRAMIENTA` aplica en Gate 2b cuando la herramienta no puede ejecutarse o el LOOP_GREEN_REPORT está ausente.
 - `N/D (<razón>)` es aceptable SOLO en el TechSpecSheet (artefacto de FASE 8, generado después de que los gates ya se ejecutaron).
 
 ### Fase 2 — Checklist LLM SecurityAgent (solo si herramientas pasaron)
@@ -369,23 +409,27 @@ VEREDICTO: APROBADO | RECHAZADO
 
 ### Checklist StandardsAgent — Gate 2b
 
-> **Precondición:** StandardsAgent no puede ser invocado sin el output real de `pytest-cov`
-> inyectado en su prompt (Fase 1 obligatoria). Ver "Regla pytest" arriba.
+> **Precondición:** StandardsAgent no puede emitir veredicto sin `LOOP_GREEN_REPORT` inyectado
+> en su prompt. El reporte es generado por CI Loop (`skills/ci-loop.md`) antes de Gate 2b.
+> Si el reporte no existe → `BLOQUEADO_POR_HERRAMIENTA`. No estimar, no asumir.
 
 ```
 CHECKLIST GATE 2b — CÓDIGO (StandardsAgent):
-[ ] [TOOL] pytest: <N> passed, <M> failed — 0 fallos permitidos
-[ ] [TOOL] pytest-cov: cobertura total ≥ 80% (umbral mínimo — threshold ajustable en pyproject.toml)
+[ ] [CI_LOOP] LOOP_GREEN_REPORT recibido — iterations_used: <n>, tool_output_sha256: <sha>
+[ ] [CI_LOOP] tests_failed == 0 (del LOOP_GREEN_REPORT — no re-ejecutado aquí)
+[ ] [CI_LOOP] coverage_total_pct ≥ umbral_threshold_used (del LOOP_GREEN_REPORT)
 [ ] [TOOL] ruff: 0 errores de linting
 [ ] [LLM] Todos los RFs del plan tienen al menos un test que los ejercita
+[ ] [LLM] Tests cubren paths de error y casos límite, no solo happy path
 [ ] [LLM] Tests no dependen de datos de producción ni de credenciales reales
 [ ] [LLM] Documentación inline suficiente para las funciones públicas del módulo
 
 VEREDICTO: APROBADO | RECHAZADO | BLOQUEADO_POR_HERRAMIENTA
-PYTEST_RESULT: <N passed, M failed — de herramienta>
-COBERTURA: <valor % real de herramienta — nunca estimado>
+CI_LOOP_REPORT: LOOP_GREEN | AUSENTE (→ BLOQUEADO_POR_HERRAMIENTA)
+PYTEST_RESULT: <N passed, 0 failed — del LOOP_GREEN_REPORT>
+COBERTURA: <valor % real del LOOP_GREEN_REPORT — nunca estimado>
+UMBRAL_COBERTURA: <valor de specs/quality.md o default 80%>
 RUFF_ERRORES: <n>
-UMBRAL_COBERTURA: 80% (o valor configurado en pyproject.toml)
 ```
 
 ### En modo RESEARCH — Gate 2b (Informe de Investigación)

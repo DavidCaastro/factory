@@ -29,6 +29,12 @@
       "last_updated": "2026-04-02T15:45:04.071022+00:00",
       "gate_verified": false
     },
+    "ci-loop": {
+      "path": "skills\\ci-loop.md",
+      "sha256": "b6d4c70564cd56929ba0106d233f1cd617c81a3f8e551087c4a36952f64a1961",
+      "last_updated": "2026-04-04T00:00:00.000000+00:00",
+      "gate_verified": false
+    },
     "change-management": {
       "path": "skills\\change-management.md",
       "sha256": "9f8f97e3d80132244c2110b0ec5241e0b937a687e43488383dfe8f5790987fe7",

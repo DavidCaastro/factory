@@ -318,8 +318,9 @@ Cada fase del protocolo tiene un modo de ejecución determinado por su naturalez
 | FASE 4: Creación de expertos por tarea | **PARALELO REAL** | Cada experto trabaja en subrama aislada; no hay dependencia entre expertos de la misma tarea |
 | FASE 5: Ejecución de expertos en la misma tarea | **PARALELO REAL** | Subramas aisladas; CoherenceAgent monitoriza diffs, no bloquea ejecución |
 | FASE 5: Tareas secuenciales del DAG | **SECUENCIAL** | Tarea B no inicia hasta que tarea A pasa Gate 2 |
-| FASE 6: Gate 1 (CoherenceAgent) | **SECUENCIAL respecto a Gate 2** | Gate 1 debe aprobarse antes de que Gate 2 tenga algo que revisar |
-| FASE 6: Gate 2 (Security + Audit + Standards) | **PARALELO REAL** | Los tres revisan `feature/<tarea>` simultáneamente |
+| FASE 6: Gate 1 (CoherenceAgent) | **SECUENCIAL respecto a CI Loop** | Gate 1 debe aprobarse antes de que el CI Loop tenga código integrado para ejecutar |
+| FASE 6: CI Loop (StandardsAgent) | **SECUENCIAL respecto a Gate 2b** | CI Loop debe emitir LOOP_GREEN antes de invocar Gate 2b — puede tener iteraciones internas paralelas (fix + re-run) |
+| FASE 6: Gate 2b (Security + Audit + Standards) | **PARALELO REAL** | Los tres revisan `feature/<tarea>` simultáneamente — solo después de LOOP_GREEN |
 | FASE 7: Gate 3 (Security + Audit revisión integral) | **PARALELO REAL** | Revisión integral simultánea de staging |
 | FASE 7: Confirmación humana | **BLOQUEANTE** | Ningún agente avanza hasta respuesta humana explícita |
 | FASE 8: Cierre (AuditAgent + StandardsAgent + ComplianceAgent) | **PARALELO REAL** | Generación de logs, propuestas de skills e informe compliance son independientes |
@@ -825,9 +826,21 @@ FASE 5c: COMPARACIÓN Y SELECCIÓN — Domain Orchestrator
 FASE 6: MERGE EN DOS NIVELES — ejecutado por Domain Orchestrator
   ├── [GATE 1] CoherenceAgent autoriza → Domain Orchestrator ejecuta merge
   │     feature/<tarea>/<experto> → feature/<tarea>
-  └── [GATE 2] Security + Audit + StandardsAgent aprueban → Domain Orchestrator ejecuta merge
+  │
+  ├── [CI LOOP — BLOQUEANTE pre-Gate 2b] StandardsAgent ejecuta CI Loop (skills/ci-loop.md)
+  │     Precondición para Gate 2b: CI Loop debe emitir LOOP_GREEN antes de invocar Gate 2b
+  │     Agent(StandardsAgent.run_ci_loop, worktree=./worktrees/<tarea>, run_in_background=False)
+  │     ├── Ejecuta pytest-cov en feature/<tarea> → clasifica: GREEN | TEST_FAILURE | COVERAGE_GAP
+  │     ├── Si TEST_FAILURE o COVERAGE_GAP:
+  │     │     → Invocar SpecialistAgent(rol=TestWriter|CodeFixer) para corregir → re-ejecutar
+  │     │     → Max 3 iteraciones; si LOOP_EXHAUSTED → escalar al Master → decisión humana
+  │     │     → [Gate 2b NO se invoca hasta recibir LOOP_GREEN]
+  │     └── Si TOOL_NOT_EXECUTABLE → BLOQUEADO_POR_HERRAMIENTA → Domain Orchestrator notifica Master
+  │
+  └── [GATE 2b] Security + Audit + StandardsAgent aprueban → Domain Orchestrator ejecuta merge
         feature/<tarea> → staging
-        StandardsAgent valida: cobertura de tests real (pytest-cov), documentación, calidad
+        Precondición: LOOP_GREEN_REPORT disponible (generado por CI Loop arriba)
+        StandardsAgent valida: LOOP_GREEN_REPORT (cobertura real), ruff, calidad semántica
         Rechazo de cualquiera de los tres bloquea el merge
 
 FASE 7: GATE FINAL DE PRE-PRODUCCIÓN — coordinado por Master Orchestrator
