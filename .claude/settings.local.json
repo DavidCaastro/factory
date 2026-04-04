@@ -167,7 +167,10 @@
       "Bash(cd \"C:\\\\Users\\\\Josue David Peñuela\\\\Documents\\\\David\\\\factory\" && pip install -e . -q && python -m pytest tests/secops/ -v --tb=short 2>&1)",
       "Bash(cd \"C:\\\\Users\\\\Josue David Peñuela\\\\Documents\\\\David\\\\factory\" && python -m pytest tests/secops/ -v --tb=short 2>&1 | tail -40)",
       "Bash(cd \"C:\\\\Users\\\\Josue David Peñuela\\\\Documents\\\\David\\\\factory\" && python -m pytest tests/secops/ -v --tb=short 2>&1 | tail -20)",
-      "Bash(cd \"C:\\\\Users\\\\Josue David Peñuela\\\\Documents\\\\David\\\\factory\" && python -m pytest tests/secops/ -v --tb=short 2>&1 | tail -15)"
+      "Bash(cd \"C:\\\\Users\\\\Josue David Peñuela\\\\Documents\\\\David\\\\factory\" && python -m pytest tests/secops/ -v --tb=short 2>&1 | tail -15)",
+      "Bash(lsof \"C:\\\\Users\\\\Josue David Peñuela\\\\Documents\\\\David\\\\factory\\\\secops\\\\records\\\\impact_analysis.jsonl\" 2>/dev/null || handle64.exe \"impact_analysis.jsonl\" 2>/dev/null || echo \"no lsof available\")",
+      "Bash(powershell -Command \"Get-Process | ForEach-Object { try { \\\\$_.Modules | Where-Object { \\\\$_.FileName -like '*impact_analysis*' } } catch {} }\" 2>/dev/null)",
+      "Bash(cd \"C:\\\\Users\\\\Josue David Peñuela\\\\Documents\\\\David\\\\factory\" && cp secops/records/impact_analysis.jsonl secops/records/impact_analysis.jsonl.bak && powershell -Command \"Move-Item -Force 'secops/records/impact_analysis.jsonl' 'secops/records/impact_analysis.jsonl.tmp'\")"
     ]
   }
 }
