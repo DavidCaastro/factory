@@ -19,9 +19,10 @@ Public exports:
     CyclicDependencyError — raised when the DAG contains a cycle
     PIVOACError          — base exception class
 
-Version: 0.3.0
+Version: 0.4.0
 """
 
+from piv_oac.circuit_breaker import GateCircuitBreaker, MAX_GATE_REJECTIONS
 from piv_oac.agents.audit import AuditAgent
 from piv_oac.agents.base import AgentBase
 from piv_oac.agents.documentation import DocumentationAgent
@@ -38,6 +39,7 @@ from piv_oac.agents.specialist import SpecialistAgent
 from piv_oac.agents.standards import StandardsAgent
 from piv_oac.exceptions import (
     AgentUnrecoverableError,
+    CircuitOpenError,
     GateRejectedError,
     MalformedOutputError,
     PIVOACError,
@@ -46,7 +48,7 @@ from piv_oac.exceptions import (
 from piv_oac.dag import CyclicDependencyError, DAGNode, DAGValidator
 from piv_oac.orchestrator import MasterOrchestrator
 
-__version__ = "0.2.0"
+__version__ = "0.4.0"
 
 __all__ = [
     "__version__",
@@ -92,4 +94,8 @@ __all__ = [
     "GateRejectedError",
     "MalformedOutputError",
     "VetoError",
+    "CircuitOpenError",
+    # Circuit breaker
+    "GateCircuitBreaker",
+    "MAX_GATE_REJECTIONS",
 ]

@@ -75,3 +75,23 @@ class MalformedOutputError(PIVOACError):
         super().__init__(
             f"[{agent_type}] malformed output — missing fields: {fields_str}"
         )
+
+
+class CircuitOpenError(PIVOACError):
+    """
+    Raised when a gate's circuit breaker is open — the gate has been rejected
+    MAX_GATE_REJECTIONS times without a successful pass, and the pipeline must
+    halt to prevent runaway LLM cost.
+
+    The caller must either escalate to a human, apply a hotfix, or call
+    GateCircuitBreaker.reset(gate) after resolving the root cause.
+    """
+
+    def __init__(self, gate: str, rejection_count: int) -> None:
+        self.gate = gate
+        self.rejection_count = rejection_count
+        super().__init__(
+            f"Gate '{gate}' circuit is OPEN after {rejection_count} rejections — "
+            "pipeline halted. Resolve the root cause then call "
+            "GateCircuitBreaker.reset(gate)."
+        )

@@ -130,6 +130,32 @@ Total: 272 tests, coverage 90.53%
 
 ---
 
+## [0.4.0] — 2026-04-04
+
+### Added
+
+**Circuit Breaker** (`piv_oac.circuit_breaker`)
+- `GateCircuitBreaker` — tracks consecutive rejections per gate; opens the circuit
+  after `MAX_GATE_REJECTIONS` (default 3) rejections, halting the pipeline immediately
+  to prevent runaway LLM cost
+- `MAX_GATE_REJECTIONS = 3` — module-level constant (overridable per-instance)
+- `async record_rejection(gate, task_id)` — increments count; on threshold breach:
+  opens circuit, emits `EscalationMessage(reason_code="MAX_REJECTIONS")` via PMIABus
+  (if configured), then raises `CircuitOpenError`
+- `record_rejection_sync(gate)` — synchronous variant without PMIA escalation
+- `is_open(gate)` / `open_gates` / `rejection_counts` — state inspection API
+- `reset(gate)` — closes circuit and resets counter after root cause is resolved
+- `CircuitOpenError(gate, rejection_count)` — new exception in `piv_oac.exceptions`;
+  inherits from `PIVOACError`; carries `.gate` and `.rejection_count` attributes
+
+**Tests**
+- `tests/test_circuit_breaker.py` — 24 tests covering constants, sync/async API,
+  state inspection, reset lifecycle, PMIA escalation integration, and error attributes
+
+Total: ~296 tests
+
+---
+
 ## [Unreleased]
 
 ### Planned
