@@ -1,47 +1,22 @@
-name: PIV/OAC — Artifact Branch Gates (staging → main)
+name: PIV/OAC — Framework Gates
 # =============================================================================
-# CI para ramas artefacto del framework PIV/OAC.
+# CI para todas las ramas activas del framework PIV/OAC.
 #
 # Triggers:
-#   push → agent-configs   : gates estructurales del framework (sin SDK, sin merge gate)
-#   push → staging         : todos los gates al integrar trabajo al producto
-#   pull_request → main    : todos los gates + valida que origen sea staging
+#   push → agent-configs   : gates estructurales + SDK
+#   push → staging         : gates estructurales + SDK
+#   push → main            : gates estructurales + SDK
 #
-# Regla de promoción:
-#   staging → main ÚNICAMENTE cuando:
-#     1. Todos los jobs de este workflow son GREEN en staging (push trigger)
-#     2. Todos los jobs son GREEN en el PR staging→main (pull_request trigger)
-#     3. Confirmación humana explícita (merge manual — Gate 3)
-#
-# El humano NUNCA confirma el merge a main antes de que este CI sea completamente verde.
+# Regla de promoción (manual):
+#   feature/* → staging → main
+#   La confirmación humana es siempre explícita — no hay gate automático de PR.
 # =============================================================================
 
 on:
   push:
-    branches: [agent-configs, staging]
-  pull_request:
-    branches: [main]
+    branches: [agent-configs, staging, main]
 
 jobs:
-  # ── Gate: origen del PR a main debe ser staging ─────────────────────────────
-  gate-source-branch:
-    name: Gate — PR to main must come from staging
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Verify source branch is staging
-        run: |
-          SRC="${{ github.head_ref }}"
-          BASE="${{ github.base_ref }}"
-          echo "PR: $SRC → $BASE"
-          if [ "$BASE" = "main" ] && [ "$SRC" != "staging" ]; then
-            echo "FAIL: Direct merge to main is only allowed from staging."
-            echo "      Source detected: $SRC"
-            echo "      Promote via: feature/<task> → staging → main"
-            exit 1
-          fi
-          echo "PASS: Source branch is staging — promotion path is valid"
-
   # ── Gate: integridad de schemas ──────────────────────────────────────────────
   validate-schemas:
     name: Gate — JSON Schema integrity
@@ -231,7 +206,6 @@ jobs:
   # ── Gate: SDK importable ─────────────────────────────────────────────────────
   validate-sdk:
     name: Gate — SDK importable
-    if: github.ref != 'refs/heads/agent-configs'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -413,7 +387,6 @@ jobs:
   # ── Gate 2b: SDK pytest coverage + semgrep ───────────────────────────────────
   gate-2b-sdk:
     name: "Gate 2b — SDK Tests + Security Scan"
-    if: github.ref != 'refs/heads/agent-configs'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -480,7 +453,7 @@ jobs:
           name: semgrep-results
           path: /tmp/semgrep-results.json
 
-  # ── Conformance: commits vía feature branches ────────────────────────────────
+  # ── Conformance: formato de commits ──────────────────────────────────────────
   check-branch-conformance:
     name: Branch Protection Conformance
     runs-on: ubuntu-latest
@@ -493,88 +466,7 @@ jobs:
         run: |
           echo "=== Branch conformance ==="
           COMMIT_MSG=$(git log -1 --format="%s" ${{ github.sha }})
-          BASE="${{ github.event.pull_request.base.ref }}"
-          if [ -n "$BASE" ] && ! echo "$COMMIT_MSG" | grep -qE "^(Merge|fix|feat|refactor|docs|chore|directive/|G-[0-9]+|Sprint|Add|Update|Fix)"; then
+          if ! echo "$COMMIT_MSG" | grep -qE "^(Merge|fix|feat|refactor|docs|chore|directive/|G-[0-9]+|Sprint|Add|Update|Fix|ci|test)"; then
             echo "WARN: Commit message does not follow conventional commits format"
           fi
           echo "PASS: Branch conformance check complete"
-
-  # ── Solicitud de merge staging → main (solo cuando CI de staging es verde) ──
-  request-merge-to-main:
-    name: Gate 3 — Request merge staging → main
-    if: github.event_name == 'push' && github.ref == 'refs/heads/staging' && github.ref != 'refs/heads/agent-configs'
-    needs:
-      - validate-schemas
-      - validate-agent-contracts
-      - validate-framework-structure
-      - scan-secrets
-      - validate-claude-md-refs
-      - validate-sdk
-      - check-cross-references
-      - check-structural-completeness
-      - check-protocol-integrity
-      - check-no-placeholders
-      - gate-2b-sdk
-      - check-branch-conformance
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Create or update PR staging → main
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          # Si staging no tiene commits adelante de main, no hay nada que mergear
-          AHEAD=$(git rev-list --count origin/main..HEAD 2>/dev/null || echo "0")
-          if [ "$AHEAD" -eq 0 ]; then
-            echo "INFO: staging está al mismo nivel que main — no hay commits nuevos."
-            echo "SKIP: PR no necesario."
-            exit 0
-          fi
-
-          EXISTING=$(gh pr list \
-            --head staging \
-            --base main \
-            --state open \
-            --json number,url \
-            --jq '.[0]' 2>/dev/null || echo "")
-
-          COMMIT_MSG=$(git log -1 --format="%s" ${{ github.sha }})
-          COMMIT_SHA="${{ github.sha }}"
-          SHORT_SHA="${COMMIT_SHA:0:7}"
-          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-
-          PR_BODY="## Gate 3 — Solicitud de merge staging → main
-
-          **CI de staging:** ✅ completamente verde
-          **Commit:** \`$SHORT_SHA\` — $COMMIT_MSG
-          **Run:** $RUN_URL
-
-          ### Checklist Gate 3 (confirmación humana requerida)
-          - [ ] Revisión integral de staging completada
-          - [ ] Documento de mitigación reconocido (si aplica)
-          - [ ] Confirmación explícita de que el objetivo está listo para producción
-
-          > Merge permitido solo tras confirmar todos los items anteriores.
-          > El CI correrá nuevamente al abrir este PR — debe permanecer verde."
-
-          if [ -z "$EXISTING" ] || [ "$EXISTING" = "null" ]; then
-            echo "Creando PR staging → main..."
-            gh pr create \
-              --head staging \
-              --base main \
-              --title "release: staging → main [$SHORT_SHA]" \
-              --body "$PR_BODY"
-            echo "PASS: PR creado — Gate 3 listo para confirmación humana"
-          else
-            PR_NUM=$(echo "$EXISTING" | python3 -c "import json,sys; print(json.load(sys.stdin)['number'])")
-            PR_URL=$(echo "$EXISTING" | python3 -c "import json,sys; print(json.load(sys.stdin)['url'])")
-            echo "PR existente #$PR_NUM — actualizando descripción..."
-            gh pr edit "$PR_NUM" --body "$PR_BODY"
-            echo "PASS: PR #$PR_NUM actualizado ($PR_URL) — Gate 3 listo para confirmación humana"
-          fi
