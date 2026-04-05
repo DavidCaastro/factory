@@ -69,8 +69,7 @@ SINKS_JS = {
     "Buffer.from", "Buffer.alloc", "Buffer.allocUnsafe",
     "decodeURIComponent",  # puede recibir payloads masivos
     # Red (destino no validado)
-    "fetch", "axios", "http.request", "https.request", "XMLHttpRequest",
-    "buildFullPath",  # función específica de axios — construye URL final
+    "fetch", "http.request", "https.request", "XMLHttpRequest", "request.open",
     # DOM (XSS)
     "innerHTML", "outerHTML", "document.write", "insertAdjacentHTML",
     # Filesystem (Node)
@@ -112,8 +111,6 @@ SANITIZERS_PYTHON = {
 SANITIZERS_JS = {
     "isAbsoluteURL", "isURLSameOrigin", "validator", "escape", "encodeURIComponent",
     "startsWith", "includes",  # validaciones de dominio
-    "allowAbsoluteUrls",  # config check de axios
-    "maxContentLength", "maxBodyLength",  # config checks de axios
     "typeof", "instanceof",
 }
 
@@ -266,7 +263,7 @@ def _infer_severity_taint(sink_name: str, source_name: str) -> str:
     if any(s in sink_lower for s in ("eval", "exec", "spawn", "system", "compile")):
         return "CRITICAL"
     # Llamadas de red con posible SSRF → HIGH
-    if any(s in sink_lower for s in ("fetch", "request", "urlopen", "buildfullpath", "axios")):
+    if any(s in sink_lower for s in ("fetch", "request", "urlopen")):
         return "HIGH"
     # Allocación sin límite → HIGH
     if any(s in sink_lower for s in ("buffer", "alloc", "decode")):
