@@ -64,6 +64,41 @@ python -m secops check --component axios
 
 ---
 
+## Schemas de Output
+
+### payload.json (RF-09)
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `scan_timestamp` | string (ISO 8601) | Fecha y hora del último scan T2 completado |
+| `risk_level` | string (LOW/MEDIUM/HIGH/CRITICAL/UNKNOWN) | Nivel de riesgo más alto encontrado en el scan |
+| `findings_by_severity` | object | Conteo de hallazgos por severidad: `{CRITICAL, HIGH, MEDIUM, LOW, INFO}` |
+| `total_findings` | integer | Total de hallazgos en el scan |
+| `deps_scanned` | integer | Número de dependencias analizadas |
+| `action_required` | boolean | True si hay hallazgos CRITICAL o HIGH con `reachable: true` |
+| `summary_for_agent` | string | Resumen en lenguaje natural para SecurityAgent (sin parseo adicional) |
+| `stale` | boolean | True si el payload tiene más de `max_payload_age_hours` horas |
+
+### impact_analysis.jsonl (RF-08)
+
+Cada línea es un JSON con los siguientes campos:
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `date` | string (ISO 8601) | Fecha y hora del hallazgo |
+| `dep` | string | Nombre de la dependencia afectada |
+| `version` | string | Versión de la dependencia analizada |
+| `finding_type` | string (TAINT_FLOW/CONTRACT_VIOLATION/BEHAVIORAL_ANOMALY) | Tipo de hallazgo del motor |
+| `severity` | string (CRITICAL/HIGH/MEDIUM/LOW/INFO) | Severidad inferida por el motor |
+| `reachable` | boolean \| null | True si el proyecto importa/usa la dependencia afectada; null si no se pudo determinar |
+| `call_path` | string | Path relativo donde se importa la dependencia (ej: `src/app.js:12`) |
+| `evidence` | string | Referencia `archivo:línea` de la evidencia en el código de la dependencia |
+| `action` | string | Acción sugerida: `upgrade_required`, `monitor`, `investigate`, `review`, `URGENT: ...` |
+
+> Archivo append-only. Las entradas existentes nunca se modifican. Deduplicación por `(dep, version, finding_type, evidence)`.
+
+---
+
 ## Integración con SecurityAgent (PIV/OAC)
 
 SecurityAgent debe ejecutar el siguiente paso **en FASE 0**, antes de cualquier gate:
