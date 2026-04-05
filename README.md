@@ -196,6 +196,10 @@ Traza flujo de datos desde fuentes no confiables (`config.url`, `req.body`, `pro
 hacia sinks peligrosos (`fetch`, `exec`, `Buffer.from`, `innerHTML`, etc.).
 Detecta paths sin sanitización intermedia en una ventana de análisis por archivo.
 
+**Exclusiones configurables:** las librerías cuyos sinks son patrones de diseño esperados
+(ORMs, motores de templates, frameworks HTTP) se declaran en `secops/SECOPS.md`
+bajo `## Exclusiones de Patrones de Diseño`. No requiere modificar código fuente.
+
 **Cobertura garantizada:** CVE-2025-27152 (axios SSRF), CVE-2025-58754 (axios DoS via data: URI).
 
 **Limitación principal:** ventana de análisis por archivo. Flujos interprocedurales o
@@ -237,9 +241,9 @@ modificando solo sus argumentos (ej: cambiar destino de `fetch` sin añadir nuev
 | `detect.py` | 98% | Todos los parsers (requirements, package.json, Cargo.toml, go.mod, pyproject.toml) |
 | `impact.py` | 100% | Append-only, deduplicación, reachability Python/JS, OSError path, overflow >3 imports, JSONL blank lines |
 | `report.py` | 97% | Contenido Markdown, agrupación, jerarquía de riesgo |
-| `taint_analyzer.py` | 99%* | CVE-2025-27152, CVE-2025-58754, severity CRITICAL/HIGH/MEDIUM, known design patterns, parse_error path |
+| `taint_analyzer.py` | 99%* | CVE-2025-27152, CVE-2025-58754, severity CRITICAL/HIGH/MEDIUM, design patterns config loader, parse_error path |
 | `fetcher.py` | 86% | Hash integrity, symlinks, path traversal, zip-slip (paths de red real excluidos por diseño) |
-| **Total** | **94%** | **230 tests** |
+| **Total** | **94%** | **237 tests** |
 
 *línea 279: dead code verificado — `"execute"` ⊆ `"exec"`, rama CRITICAL activa antes; 99% es el techo real.
 

@@ -18,6 +18,37 @@ targets:
 
 ---
 
+## Exclusiones de Patrones de Diseño
+
+Librerías cuyos sinks son patrones de diseño esperados, no vulnerabilidades.
+El Taint Analyzer suprime hallazgos TAINT_FLOW para estas combinaciones librería/sink.
+
+Para agregar una exclusión: `prefijo_paquete: sink1, sink2, ...`
+El prefijo se compara contra el inicio del nombre del paquete (p.ej. `sqlalchemy` cubre `sqlalchemy-orm`).
+
+```
+# ORMs y drivers de base de datos — execute ES la API segura parametrizada
+sqlalchemy: execute, cursor.execute
+alembic: execute, cursor.execute
+asyncpg: execute, cursor.execute
+aiosqlite: execute, cursor.execute
+psycopg2: execute, cursor.execute
+pymysql: execute, cursor.execute
+# Motores de templates — eval/exec son su razón de existir
+mako: eval, exec, compile
+jinja2: eval, exec, compile
+chameleon: eval, exec, compile
+# Syntax highlighters — compilan expresiones sobre datos de entrada por diseño
+pygments: compile, re.compile, exec
+# Serialización / parsing — procesan datos externos por diseño
+pyyaml: yaml.load
+# Frameworks HTTP — los sinks son su API pública
+aiohttp: aiohttp
+httpx: httpx.get, httpx.post
+```
+
+---
+
 ## Triggers
 
 | ID | Cuándo | Comando | Bloquea sesión |

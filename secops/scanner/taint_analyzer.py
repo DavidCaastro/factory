@@ -7,6 +7,7 @@ Razona desde la estructura del flujo: fuente → [sanitización?] → sink.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 from .ast_engine import ASTNode, ParseResult
 
@@ -77,28 +78,52 @@ SINKS_JS = {
 }
 
 # Paquetes donde ciertos sinks son patrones de diseño esperados (no vulnerabilidades).
-# Clave: prefijo de nombre de paquete (lowercase). Valor: sinks que son diseño normal.
-# Estos hallazgos se etiquetan DESIGN_PATTERN y se excluyen del conteo de riesgo real.
-KNOWN_DESIGN_PATTERNS: dict[str, set[str]] = {
-    # ORMs y drivers de base de datos — execute ES la API segura parametrizada
-    "sqlalchemy": {"execute", "cursor.execute"},
-    "alembic": {"execute", "cursor.execute"},
-    "asyncpg": {"execute", "cursor.execute"},
-    "aiosqlite": {"execute", "cursor.execute"},
-    "psycopg2": {"execute", "cursor.execute"},
-    "pymysql": {"execute", "cursor.execute"},
-    # Motores de templates — eval/exec son su razón de existir
-    "mako": {"eval", "exec", "compile"},
-    "jinja2": {"eval", "exec", "compile"},
-    "chameleon": {"eval", "exec", "compile"},
-    # Syntax highlighters — compilan regex sobre datos de entrada por diseño
-    "pygments": {"compile", "re.compile", "exec"},
-    # Librerías de serialización / parsing — procesan datos externos por diseño
-    "pyyaml": {"yaml.load"},
-    # Frameworks HTTP — el sink es su API pública
-    "aiohttp": {"aiohttp"},
-    "httpx": {"httpx.get", "httpx.post"},
-}
+# Cargado desde secops/SECOPS.md §Exclusiones de Patrones de Diseño al importar el módulo.
+# Para agregar exclusiones: editar SECOPS.md — no modificar este archivo.
+KNOWN_DESIGN_PATTERNS: dict[str, set[str]] = {}  # populated below
+
+
+def _load_design_patterns(secops_md: Path) -> dict[str, set[str]]:
+    """Parsea §Exclusiones de Patrones de Diseño de SECOPS.md.
+
+    Formato de cada línea dentro del bloque de código:
+        prefijo_paquete: sink1, sink2, ...
+    Las líneas que empiezan con '#' son comentarios y se ignoran.
+    """
+    try:
+        content = secops_md.read_text(encoding="utf-8")
+    except OSError:
+        return {}
+
+    patterns: dict[str, set[str]] = {}
+    in_section = False
+    in_code_block = False
+
+    for line in content.splitlines():
+        stripped = line.strip()
+        if stripped == "## Exclusiones de Patrones de Diseño":
+            in_section = True
+            continue
+        if in_section and stripped.startswith("## "):
+            break
+        if in_section:
+            if stripped.startswith("```"):
+                in_code_block = not in_code_block
+                continue
+            if in_code_block and stripped and not stripped.startswith("#"):
+                if ":" in stripped:
+                    pkg, sinks_str = stripped.split(":", 1)
+                    pkg = pkg.strip().lower().replace("-", "_").replace(".", "_")
+                    sinks = {s.strip() for s in sinks_str.split(",") if s.strip()}
+                    if pkg and sinks:
+                        patterns[pkg] = sinks
+
+    return patterns
+
+
+KNOWN_DESIGN_PATTERNS = _load_design_patterns(
+    Path(__file__).parent.parent / "SECOPS.md"
+)
 
 
 # Nodos que indican sanitización / validación entre fuente y sink
