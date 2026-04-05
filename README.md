@@ -229,18 +229,21 @@ modificando solo sus argumentos (ej: cambiar destino de `fetch` sin añadir nuev
 
 | Módulo | Cobertura | Tests |
 |---|---|---|
-| `behavioral_delta.py` | 97% | Supply chain real, fix legítimo, call graph |
+| `ast_engine.py` | 100% | Python: funciones sync/async, imports, asignaciones, if, calls atributo. JS: funciones, arrow functions, ES6 imports, require, error paths |
+| `behavioral_delta.py` | 100% | Supply chain real (axios@1.14.1 RAT), fix legítimo, call graph, module-scope calls, parse_error path |
 | `bridge.py` | 95% | Payload generation, T0/T1 read |
 | `cli.py` | 95% | Todos los comandos, exit codes, arg validation |
+| `contract_verifier.py` | 100% | CVE-2025-27152, CVE-2025-58754, edge cases parse_error, severity inference, _get_guarded_ops completo |
 | `detect.py` | 98% | Todos los parsers (requirements, package.json, Cargo.toml, go.mod, pyproject.toml) |
+| `impact.py` | 100% | Append-only, deduplicación, reachability Python/JS, OSError path, overflow >3 imports, JSONL blank lines |
 | `report.py` | 97% | Contenido Markdown, agrupación, jerarquía de riesgo |
-| `contract_verifier.py` | 86% | CVE-2025-27152, CVE-2025-58754, principios |
-| `taint_analyzer.py` | 85% | CVE-2025-27152, CVE-2025-58754, sanitización |
-| `fetcher.py` | 86% | Hash integrity, symlinks, path traversal, zip-slip |
-| `impact.py` | 83% | Append-only, deduplicación, reachability |
-| **Total** | **88%** | **150 tests** |
+| `taint_analyzer.py` | 99%* | CVE-2025-27152, CVE-2025-58754, severity CRITICAL/HIGH/MEDIUM, known design patterns, parse_error path |
+| `fetcher.py` | 86% | Hash integrity, symlinks, path traversal, zip-slip (paths de red real excluidos por diseño) |
+| **Total** | **94%** | **230 tests** |
 
-Tests de integración verifican el pipeline completo con código real de los CVEs documentados.
+*línea 279: dead code verificado — `"execute"` ⊆ `"exec"`, rama CRITICAL activa antes; 99% es el techo real.
+
+Tests de integración verifican el pipeline completo con código fuente real de los CVEs documentados.
 
 ---
 
