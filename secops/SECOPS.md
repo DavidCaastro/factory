@@ -65,11 +65,10 @@ httpx: httpx.get, httpx.post
 python -m secops scan
 
 # Solo una dependencia
-python -m secops scan --dep axios
-python -m secops scan --dep cryptography
+python -m secops scan --dep requests        # Python
+python -m secops scan --dep lodash          # JavaScript
 
 # Solo un método/función dentro de una dependencia
-python -m secops scan --dep axios --method buildFullPath
 python -m secops scan --dep cryptography --method Cipher
 
 # Output JSON (para integración con otras herramientas)
