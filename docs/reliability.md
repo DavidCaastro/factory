@@ -126,13 +126,18 @@ El scanner complementa una postura de seguridad; no la reemplaza.
 ## Parser JavaScript
 
 El parser JavaScript es una implementación propia (~130 líneas). **No es un parser de producción.**
+La cobertura del módulo `ast_engine.py` es del 100% (tests de integración verificados 2026-04-05).
 
-### Cobertura confirmada
+### Cobertura confirmada (con test de integración)
 - Declaraciones de función (`function foo() {}`)
-- Expresiones de función y arrow functions simples
+- Arrow functions y const functions (`const fn = () => {}`, `const handler = async (req, res) => {}`)
+- ES6 imports (`import React from 'react'`, `import { useState } from 'react'`)
+- CommonJS require (`const axios = require('axios')`)
 - Llamadas a métodos (`obj.method()`, `require('x').method()`)
 - Asignaciones simples
 - Bloques `if/else`, `try/catch`, `for/while`
+- Manejo de errores: archivo no legible → `ParseResult(parse_error=...)` sin excepción
+- Lenguaje no soportado → `ParseResult(parse_error="Lenguaje no soportado: X")`
 
 ### Cobertura no garantizada
 - Optional chaining (`obj?.method?.()`)
@@ -158,7 +163,7 @@ El fetcher es el componente más robusto del sistema:
 | Path traversal en zip | `_verify_zip_members` antes de extraer | **Fuerte** |
 | Re-descarga de dependencia limpia | Cache check antes de red | **Fuerte** |
 
-El fetcher tiene cobertura del 86% con tests de seguridad que usan artefactos reales (no mocks).
+El fetcher tiene cobertura del 86% con tests de seguridad que usan artefactos reales (no mocks). Los paths de descarga real de red (PyPI/npm) están excluidos por diseño — son la frontera del sistema.
 
 **Limitación**: solo soporta PyPI (sdist) y npm (tarball). Dependencias de Cargo, Go modules, Maven, etc. no se descargan ni analizan.
 
