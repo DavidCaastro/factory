@@ -30,6 +30,8 @@ def build_parser() -> argparse.ArgumentParser:
     scan_p.add_argument("--method", metavar="FUNCIÓN", help="Limitar scan a una función/método (requiere --dep)")
     scan_p.add_argument("--root", metavar="PATH", default=".", help="Raíz del proyecto (default: directorio actual)")
     scan_p.add_argument("--json", action="store_true", help="Output en JSON")
+    scan_p.add_argument("--directive", action="store_true", help="Modo directivo: escribe reportes segmentados por dep en --reports-dir")
+    scan_p.add_argument("--reports-dir", metavar="PATH", default="reports", help="Directorio para reportes segmentados (default: reports/)")
     _add_progress_flags(scan_p)
 
     # t0
@@ -111,12 +113,15 @@ def _cmd_scan(args) -> int:
 
     from .main import run_full_scan
 
+    reports_dir = Path(args.reports_dir).resolve() if getattr(args, "directive", False) else None
+
     renderer = ConsoleProgressRenderer(enabled=_should_show_progress(args, is_json=getattr(args, "json", False)))
     result = run_full_scan(
         project_root,
         dep_filter=args.dep,
         method_filter=args.method,
         on_progress=renderer.update,
+        reports_dir=reports_dir,
     )
     renderer.finish()
 

@@ -6,7 +6,7 @@ def test_scan_progress_overwrites_lines(capsys, monkeypatch, tmp_path):
     from secops.scanner.cli import run
     from secops.scanner.progress import ProgressEvent
 
-    def fake_run_full_scan(_root, dep_filter=None, method_filter=None, on_progress=None):
+    def fake_run_full_scan(_root, dep_filter=None, method_filter=None, on_progress=None, reports_dir=None):
         assert dep_filter is None
         assert method_filter is None
         if on_progress is not None:
@@ -33,7 +33,7 @@ def test_scan_json_disables_progress_output(capsys, monkeypatch, tmp_path):
     import secops.scanner.main as main
     from secops.scanner.cli import run
 
-    def fake_run_full_scan(_root, dep_filter=None, method_filter=None, on_progress=None):
+    def fake_run_full_scan(_root, dep_filter=None, method_filter=None, on_progress=None, reports_dir=None):
         assert dep_filter is None
         assert method_filter is None
         assert on_progress is not None

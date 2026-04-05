@@ -9,3 +9,5 @@ build/
 *.egg
 secops/deps_cache/
 secops/reports/
+secops/records/
+secops/bridge/

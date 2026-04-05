@@ -141,6 +141,7 @@ def run_full_scan(
     dep_filter: str | None = None,
     method_filter: str | None = None,
     on_progress: Callable[[object], None] | None = None,
+    reports_dir: Path | None = None,
 ) -> dict:
     """Ejecuta el scan completo: detect → fetch → parse → analizar → output.
 
@@ -291,6 +292,10 @@ def run_full_scan(
     report_path = generate_report(all_findings, dep_summary, languages_detected, REPORTS_DIR)
     write_impact(all_findings, project_root, IMPACT_FILE)
     write_payload(all_findings, BRIDGE_DIR, dep_summary)
+
+    if reports_dir is not None:
+        from .directive import write_segmented_reports
+        write_segmented_reports(all_findings, dep_summary, reports_dir)
 
     return {
         "findings_count": len(all_findings),
