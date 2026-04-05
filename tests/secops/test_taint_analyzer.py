@@ -378,12 +378,12 @@ class TestEdgeCases:
             nodes=[],
             parse_error="SyntaxError: unexpected token",
         )
-        # Snippet que SI genera TAINT_FLOW: 'url' en SOURCES_JS, 'buildFullPath' en SINKS_JS
+        # Snippet que SI genera TAINT_FLOW: 'url' en SOURCES_JS, 'fetch' en SINKS_JS
         good_src = tmp_path / "good.js"
         good_src.write_text(
             "function f(config) {\n"
             "  var url = config.url;\n"
-            "  buildFullPath(config.baseURL, url);\n"
+            "  fetch(url);\n"
             "}\n"
         )
         from secops.scanner.ast_engine import parse_file

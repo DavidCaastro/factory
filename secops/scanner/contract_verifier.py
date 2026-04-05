@@ -26,8 +26,8 @@ RESTRICTION_PREFIXES = (
 GUARDED_OPERATIONS = {
     # Operaciones de red — deben respetar allow*/restrict*
     "network": {
-        "buildFullPath", "fetch", "request", "urlopen", "XMLHttpRequest",
-        "http.request", "https.request", "axios",
+        "fetch", "request", "request.open", "urlopen", "XMLHttpRequest",
+        "http.request", "https.request",
     },
     # Allocación de memoria — deben respetar max*/limit*
     "allocation": {
