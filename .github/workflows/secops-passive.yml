@@ -1,8 +1,6 @@
 name: SecOps Passive Scan
 
 on:
-  schedule:
-    - cron: '0 2 * * *'   # Diario a las 02:00 UTC
   workflow_dispatch:
     inputs:
       target:
@@ -34,13 +32,13 @@ jobs:
 
       # ── Target: piv-oac-sdk ─────────────────────────────────────────────────
       - name: Extract PIV-OAC SDK manifest
-        if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == 'piv-oac-sdk' || github.event_name == 'schedule' }}
+        if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == 'piv-oac-sdk' }}
         run: |
           mkdir -p /tmp/scan-targets/piv-oac-sdk
-          git show agent-configs:sdk/pyproject.toml > /tmp/scan-targets/piv-oac-sdk/pyproject.toml
+          git show origin/agent-configs:sdk/pyproject.toml > /tmp/scan-targets/piv-oac-sdk/pyproject.toml
 
       - name: Scan PIV-OAC SDK dependencies
-        if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == 'piv-oac-sdk' || github.event_name == 'schedule' }}
+        if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == 'piv-oac-sdk' }}
         run: |
           python -m secops scan \
             --root /tmp/scan-targets/piv-oac-sdk \

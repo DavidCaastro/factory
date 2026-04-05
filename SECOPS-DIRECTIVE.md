@@ -2,8 +2,8 @@
 
 > **Rama:** `sec-ops` | **Rol:** pasivo, solo lectura para agentes | **Escritura:** `github-actions[bot]` exclusivamente
 
-Esta rama ejecuta el scanner de forma autónoma cada 24h y almacena los resultados
-en `reports/`. SecurityAgent lee estos datos en FASE 0 sin ejecutar el scanner.
+Esta rama almacena los resultados del scanner en `reports/`. SecurityAgent lee estos datos
+en FASE 0 y dispara el scan automáticamente cuando los reportes están desactualizados.
 
 ---
 
@@ -54,7 +54,10 @@ SecurityAgent lee `sec-ops:reports/index.json` al inicio de cada sesión Nivel 2
 **SecurityAgent NO bloquea automáticamente.** El veredicto es siempre del usuario.
 
 **Si `index.json` no existe o tiene más de 48h:** SecurityAgent dispara `workflow_dispatch`
-manualmente e informa al usuario antes de proceder con el DAG.
+automáticamente via GitHub API (token `GH_TOKEN` desde MCP o variable de entorno) e informa
+al usuario que el scan fue disparado. El DAG continúa sin esperar el resultado — los reportes
+estarán disponibles en la próxima sesión. Si `GH_TOKEN` no está disponible, SecurityAgent
+emite advertencia pasiva sin bloquear.
 
 ---
 
@@ -69,8 +72,9 @@ manualmente e informa al usuario antes de proceder con el DAG.
 
 ---
 
-## Schedule
+## Triggers del workflow
 
-- **Automático:** diariamente a las 02:00 UTC via cron
-- **Manual:** `workflow_dispatch` desde GitHub Actions UI
-- **TTL de reporte:** 48h (stale si `last_scan` supera este umbral)
+- **SecurityAgent FASE 0 (principal):** cuando `last_updated` es null o supera 48h, SecurityAgent
+  dispara `workflow_dispatch` automáticamente via GitHub API con `ref: sec-ops`.
+- **Manual:** `workflow_dispatch` desde GitHub Actions UI o via API con `GH_TOKEN`.
+- **TTL de reporte:** 48h (stale si `last_updated` supera este umbral)
