@@ -1,10 +1,10 @@
 name: SecOps Scanner — Product CI
 # =============================================================================
-# CI para el producto SecOps Scanner en ramas de entrega.
+# CI para el producto SecOps Scanner. Rama directiva: sec-ops.
 #
 # Triggers:
-#   push → staging  : validación completa antes de promover a main
-#   push → main     : gate final de entrega
+#   push → sec-ops          : validación completa en la rama directiva
+#   push → fix/*, feature/* : validación en ramas de tarea
 #
 # Gates:
 #   1. Integridad estructural    — módulos y archivos críticos presentes
@@ -16,7 +16,7 @@ name: SecOps Scanner — Product CI
 
 on:
   push:
-    branches: [staging, main]
+    branches: [sec-ops, "fix/*", "feature/*"]
 
 jobs:
 
