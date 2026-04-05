@@ -45,10 +45,18 @@ git show sec-ops:reports/<dep>/latest.json
 
 ### Criterio de stale
 
-Si `index.json` no existe **o** `last_updated` supera las 48h desde ahora:
-- SecurityAgent informa al usuario: _"Reportes sec-ops desactualizados (>48h). Disparar workflow_dispatch en GitHub Actions para actualizar."_
-- SecurityAgent NO bloquea el DAG por stale — es una advertencia informativa.
-- Si `index.json` no existe en absoluto → advertencia de primer run.
+Si `index.json` no existe **o** `last_updated` supera las 48h desde ahora, SecurityAgent dispara automáticamente el scan:
+
+```
+POST https://api.github.com/repos/<owner>/<repo>/actions/workflows/secops-passive.yml/dispatches
+{"ref": "sec-ops", "inputs": {"target": "all"}}
+Authorization: Bearer $GH_TOKEN
+```
+
+- **Token:** `GH_TOKEN` desde MCP o variable de entorno. Nunca hardcodeado.
+- **Comportamiento:** fire-and-forget. SecurityAgent NO bloquea el DAG. Informa al usuario que el scan fue disparado y que los resultados estarán disponibles en la próxima sesión.
+- **Si `GH_TOKEN` no disponible:** comportamiento degradado — advertencia pasiva al usuario sin bloqueo.
+- **Si `index.json` no existe en absoluto:** advertencia de primer run + dispatch si `GH_TOKEN` disponible.
 
 ### Consolidación de alerta
 
