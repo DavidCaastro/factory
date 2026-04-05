@@ -59,6 +59,7 @@ El scanner complementa una postura de seguridad; no la reemplaza.
 
 1. Código de test o mocks que contienen los patrones source/sink sin ser código de producción real.
 2. Wrappers de seguridad que contienen los patrones precisamente para sanitizar (el motor detecta presencia, no semántica de sanitización efectiva).
+3. **Librerías con sinks esperados por diseño** (ORMs, motores de templates, frameworks HTTP): `execute` en SQLAlchemy, `eval` en Jinja2, etc. Mitigación: declarar la exclusión en `secops/SECOPS.md §Exclusiones de Patrones de Diseño`. Cualquier librería puede añadirse sin modificar código fuente.
 
 ---
 

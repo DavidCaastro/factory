@@ -466,3 +466,97 @@ class TestEdgeCases:
         from secops.scanner.taint_analyzer import _matches_any
         result = _matches_any("safe_function", {"eval", "exec", "fetch"})
         assert result is False
+
+
+# ---------------------------------------------------------------------------
+# Tests de _load_design_patterns (carga desde SECOPS.md)
+# ---------------------------------------------------------------------------
+
+class TestLoadDesignPatterns:
+    """Verifica el loader de exclusiones de SECOPS.md."""
+
+    def test_returns_empty_dict_for_missing_file(self, tmp_path):
+        """OSError al leer archivo inexistente -> retorna {} sin excepcion."""
+        from secops.scanner.taint_analyzer import _load_design_patterns
+        result = _load_design_patterns(tmp_path / "nonexistent.md")
+        assert result == {}
+
+    def test_parses_single_entry_correctly(self, tmp_path):
+        """Una entrada 'pkg: sink1, sink2' se parsea como {pkg: {sink1, sink2}}."""
+        from secops.scanner.taint_analyzer import _load_design_patterns
+        md = tmp_path / "SECOPS.md"
+        md.write_text(
+            "## Exclusiones de Patrones de Diseño\n"
+            "```\n"
+            "mypkg: eval, exec\n"
+            "```\n",
+            encoding="utf-8",
+        )
+        result = _load_design_patterns(md)
+        assert result == {"mypkg": {"eval", "exec"}}
+
+    def test_parses_multiple_entries(self, tmp_path):
+        """Multiples entradas se acumulan correctamente."""
+        from secops.scanner.taint_analyzer import _load_design_patterns
+        md = tmp_path / "SECOPS.md"
+        md.write_text(
+            "## Exclusiones de Patrones de Diseño\n"
+            "```\n"
+            "orm_a: execute, cursor.execute\n"
+            "template_b: eval, compile\n"
+            "```\n",
+            encoding="utf-8",
+        )
+        result = _load_design_patterns(md)
+        assert result["orm_a"] == {"execute", "cursor.execute"}
+        assert result["template_b"] == {"eval", "compile"}
+
+    def test_stops_parsing_at_next_section(self, tmp_path):
+        """Deja de parsear al encontrar otra seccion '## ...'."""
+        from secops.scanner.taint_analyzer import _load_design_patterns
+        md = tmp_path / "SECOPS.md"
+        md.write_text(
+            "## Exclusiones de Patrones de Diseño\n"
+            "```\n"
+            "mypkg: eval\n"
+            "```\n"
+            "## Otra Sección\n"
+            "```\n"
+            "otherpkg: fetch\n"
+            "```\n",
+            encoding="utf-8",
+        )
+        result = _load_design_patterns(md)
+        assert "mypkg" in result
+        assert "otherpkg" not in result
+
+    def test_ignores_comment_lines_in_code_block(self, tmp_path):
+        """Lineas que empiezan con '#' dentro del bloque se ignoran."""
+        from secops.scanner.taint_analyzer import _load_design_patterns
+        md = tmp_path / "SECOPS.md"
+        md.write_text(
+            "## Exclusiones de Patrones de Diseño\n"
+            "```\n"
+            "# esto es un comentario\n"
+            "realpkg: eval\n"
+            "```\n",
+            encoding="utf-8",
+        )
+        result = _load_design_patterns(md)
+        assert result == {"realpkg": {"eval"}}
+
+    def test_returns_empty_when_section_absent(self, tmp_path):
+        """SECOPS.md sin la seccion retorna {}."""
+        from secops.scanner.taint_analyzer import _load_design_patterns
+        md = tmp_path / "SECOPS.md"
+        md.write_text("## Otra Sección\n\nContenido.\n", encoding="utf-8")
+        result = _load_design_patterns(md)
+        assert result == {}
+
+    def test_real_secops_md_contains_mako_and_jinja2(self):
+        """SECOPS.md del repo contiene mako y jinja2 — garantia de regresion."""
+        from secops.scanner.taint_analyzer import KNOWN_DESIGN_PATTERNS
+        assert "mako" in KNOWN_DESIGN_PATTERNS, "mako debe estar en KNOWN_DESIGN_PATTERNS"
+        assert "jinja2" in KNOWN_DESIGN_PATTERNS, "jinja2 debe estar en KNOWN_DESIGN_PATTERNS"
+        assert "eval" in KNOWN_DESIGN_PATTERNS["mako"]
+        assert "exec" in KNOWN_DESIGN_PATTERNS["jinja2"]
