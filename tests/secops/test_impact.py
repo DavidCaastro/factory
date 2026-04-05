@@ -17,6 +17,7 @@ Casos cubiertos:
 """
 
 import json
+import pathlib
 from pathlib import Path
 
 import pytest
@@ -280,3 +281,142 @@ class TestSuggestAction:
         f = _finding(severity="INFO")
         action = _suggest_action(f, reachable=True)
         assert "monitor" in action.lower()
+
+
+
+class TestReachabilityOSError:
+    """_check_reachability maneja OSError silenciosamente en bucles de archivos."""
+
+    def test_oserror_on_python_file_is_skipped(self, tmp_path):
+        """OSError al leer un .py -> se ignora y continua (lines 82-83)."""
+        from unittest.mock import patch
+
+        src_ok = tmp_path / "ok.py"
+        src_ok.write_text("import mylib" + chr(10))
+        src_bad = tmp_path / "bad.py"
+        src_bad.write_text("import mylib" + chr(10))
+
+        original_read_text = pathlib.Path.read_text
+
+        def selective_fail(self_path, *args, **kwargs):
+            if self_path.name == "bad.py":
+                raise OSError("cannot read")
+            return original_read_text(self_path, *args, **kwargs)
+
+        finding = _finding(dep_name="mylib")
+        with patch.object(pathlib.Path, "read_text", selective_fail):
+            reachable, call_path = _check_reachability(finding, tmp_path)
+
+        # ok.py se pudo leer -> reachable True
+        assert reachable is True
+
+    def test_oserror_on_js_file_is_skipped(self, tmp_path):
+        """OSError al leer un .js -> se ignora y continua (lines 90-98)."""
+        from unittest.mock import patch
+
+        src_js = tmp_path / "app.js"
+        # Use require with double quotes to ensure detection
+        src_js.write_text('const m = require("jsonly");' + chr(10))
+
+        original_read_text = pathlib.Path.read_text
+
+        def selective_fail(self_path, *args, **kwargs):
+            if self_path.suffix == ".js":
+                raise OSError("cannot read js")
+            return original_read_text(self_path, *args, **kwargs)
+
+        finding = _finding(dep_name="jsonly")
+        with patch.object(pathlib.Path, "read_text", selective_fail):
+            reachable, call_path = _check_reachability(finding, tmp_path)
+
+        # JS not readable -> not reachable
+        assert reachable is False
+
+
+
+class TestCallPathTruncation:
+    """Cuando hay 4+ archivos que importan la misma dep, call_path indica cuantos mas."""
+
+    def test_call_path_shows_overflow_count(self, tmp_path):
+        """4 archivos importan la misma dep -> call_path contiene '+N mas' (line 105)."""
+        dep = "mypkg"
+        for i in range(4):
+            f = tmp_path / ("mod" + str(i) + ".py")
+            f.write_text("import " + dep + chr(10))
+
+        finding = _finding(dep_name=dep)
+        reachable, call_path = _check_reachability(finding, tmp_path)
+
+        assert reachable is True
+        # Should mention overflow
+        assert "+" in call_path
+
+
+
+class TestSuggestActionReview:
+    """_suggest_action retorna review para reachable=True con severidad no critica."""
+
+    def test_reachable_medium_severity_returns_review(self):
+        """reachable=True + severity=MEDIUM -> review (line 122)."""
+        f = _finding(severity="MEDIUM")
+        action = _suggest_action(f, reachable=True)
+        assert action == "review"
+
+    def test_reachable_low_severity_returns_review(self):
+        """reachable=True + severity=LOW -> review (line 122)."""
+        f = _finding(severity="LOW")
+        action = _suggest_action(f, reachable=True)
+        assert action == "review"
+
+
+
+class TestLoadExistingKeysBlankLines:
+    """_load_existing_keys ignora lineas en blanco en el JSONL (line 132)."""
+
+    def test_blank_lines_in_jsonl_are_skipped(self, tmp_path):
+        """Lineas vacias intercaladas en JSONL -> se saltan sin error."""
+        impact_file = tmp_path / "impact.jsonl"
+        entry = json.dumps({
+            "dep": "pkg", "version": "1.0", "finding_type": "TAINT_FLOW",
+            "file": "main.py", "line": 10
+        })
+        # Write with blank lines intercalated
+        impact_file.write_text(
+            entry + chr(10) + chr(10) + entry + chr(10) + chr(10),
+            encoding="utf-8"
+        )
+
+        keys = _load_existing_keys(impact_file)
+
+        # Two identical entries -> 1 unique key; blank lines ignored
+        assert len(keys) == 1
+
+
+
+class TestReachabilityJSDetection:
+    """_check_reachability detecta imports en archivos .js del proyecto."""
+
+    def test_detects_js_require_in_project(self, tmp_path):
+        """JS file con require(dep) -> reachable=True (lines 96-98)."""
+        src_js = tmp_path / "app.js"
+        # Use single-quote require pattern
+        src_js.write_text("const m = require" + chr(40) + chr(39) + "jslib" + chr(39) + chr(41) + ";" + chr(10))
+
+        finding = _finding(dep_name="jslib")
+        reachable, call_path = _check_reachability(finding, tmp_path)
+
+        assert reachable is True
+        assert "app.js" in call_path
+
+    def test_secops_js_file_excluded(self, tmp_path):
+        """JS files dentro de secops/ se excluyen del scan (line 91)."""
+        secops_dir = tmp_path / "secops" / "scanner"
+        secops_dir.mkdir(parents=True)
+        js_file = secops_dir / "main.js"
+        js_file.write_text("const m = require" + chr(40) + chr(39) + "excluded_pkg" + chr(39) + chr(41) + ";" + chr(10))
+
+        finding = _finding(dep_name="excluded_pkg")
+        reachable, _ = _check_reachability(finding, tmp_path)
+
+        # secops/ is excluded
+        assert reachable is False
