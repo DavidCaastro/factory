@@ -18,7 +18,7 @@
 | compliance_scope | MINIMAL |
 | gate3_reminder_hours | 24 |
 | Fecha de inicio | 2026-04-03 |
-| Última actualización | 2026-04-04 |
+| Última actualización | 2026-04-05 |
 
 ---
 
@@ -37,11 +37,11 @@
 
 | Atributo | Valor |
 |---|---|
-| Objetivo en curso | OBJ-004 — SecOps Scanner v0.1 |
-| RFs en scope | RF-01 a RF-15 |
-| Estado | COMPLETADO — Gate 3 aprobado |
-| Última ejecución completada | 2026-04-03 |
-| Commit de entrega | cca61e8 (impl) / 79c6594 (merge→main) |
+| Objetivo en curso | Ninguno — sin objetivo activo |
+| RFs en scope | — |
+| Estado | Sin objetivo activo. Próximo objetivo iniciará desde `skills/init.md` |
+| Última ejecución completada | 2026-04-05 (OBJ-006) |
+| Commit de entrega | dda47ce (OBJ-006 quality closure → main) |
 
 ---
 
@@ -76,3 +76,4 @@ Los archivos de `specs/active/` son el contrato de ejecución. **Inmutables dura
 |---|---|---|
 | v0.1 | 2026-04-03 | Inicialización — diseño consolidado en sesión con usuario |
 | v0.2 | 2026-04-04 | Cierre OBJ-004 — estado actualizado a COMPLETADO, execution_mode→PRODUCTION, evidencias registradas |
+| v0.3 | 2026-04-05 | Cierre OBJ-006 — quality closure: 230 tests, 94% cobertura, DoD completa, sin objetivo activo |
