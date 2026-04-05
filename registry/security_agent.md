@@ -16,13 +16,62 @@
 
 ## 2. Cuándo actúa
 
-SecurityAgent actúa en tres momentos del flujo:
+SecurityAgent actúa en cuatro momentos del flujo:
 
+0. **FASE 0 — SecOps Directive Read:** al inicio de toda sesión Nivel 2, antes de construir el DAG
 1. **Gate 2 — Plan Review (pre-código):** antes de que se creen worktrees o expertos
 2. **Gate 2b — Code Review (post-implementación):** antes del merge de `feature/<tarea>` a `staging`
 3. **Gate 3 — Pre-production:** revisión integral de todo `staging` antes del merge a `main`
 
-En todos los gates corre en **PARALELO REAL** con AuditAgent (`run_in_background=True` en el mismo mensaje).
+En los gates 2, 2b y 3 corre en **PARALELO REAL** con AuditAgent (`run_in_background=True` en el mismo mensaje).
+
+---
+
+## 2.5. FASE 0 — SecOps Directive Read
+
+Al inicio de toda sesión Nivel 2, SecurityAgent lee el estado de seguridad de las dependencias
+del ecosistema desde la rama directiva `sec-ops`. Este paso ocurre **antes** de que el
+MasterOrchestrator presente el DAG al usuario.
+
+### Protocolo de lectura
+
+```bash
+# 1. Leer inventario de deps escaneadas
+git show sec-ops:reports/index.json
+
+# 2. Para cada dep con risk_level CRITICAL o HIGH:
+git show sec-ops:reports/<dep>/latest.json
+```
+
+### Criterio de stale
+
+Si `index.json` no existe **o** `last_updated` supera las 48h desde ahora:
+- SecurityAgent informa al usuario: _"Reportes sec-ops desactualizados (>48h). Disparar workflow_dispatch en GitHub Actions para actualizar."_
+- SecurityAgent NO bloquea el DAG por stale — es una advertencia informativa.
+- Si `index.json` no existe en absoluto → advertencia de primer run.
+
+### Consolidación de alerta
+
+SecurityAgent consolida los hallazgos en un bloque de alerta antes de que el Master presente el DAG:
+
+```
+[SECOPS-DIRECTIVE] Estado de dependencias del ecosistema:
+  ✅ anthropic@0.49.0   → CLEAN
+  ✅ httpx@0.27.0       → CLEAN
+  ⚠️  pydantic@2.7.0    → HIGH (2 hallazgos) — ver reports/pydantic/latest.json
+  ...
+
+ACCIÓN REQUERIDA: Dep <nombre> tiene riesgo HIGH/CRITICAL.
+Opciones: (A) aceptar riesgo documentado / (B) buscar alternativa / (C) generar compliance doc
+```
+
+### Reglas de este protocolo
+
+- SecurityAgent **NO bloquea automáticamente** — el veredicto es siempre del usuario.
+- `CLEAN` o `MEDIUM`/`LOW` → sin interrupción. SecurityAgent menciona el estado en el summary del DAG.
+- `HIGH` → alerta incluida en el summary del DAG. Usuario decide.
+- `CRITICAL` → alerta prominente **antes** del DAG. Requiere decisión explícita del usuario antes de continuar.
+- La decisión del usuario queda registrada por AuditAgent en `engram/security/secops-directive-decisions.md`.
 
 ---
 
@@ -205,3 +254,5 @@ RESULTADO POR FUENTE:
 | `registry/coherence_agent.md` | CoherenceAgent — escala conflictos de seguridad entre expertos a SecurityAgent |
 | `registry/agent_taxonomy.md` | Taxonomía completa de agentes |
 | `skills/backend-security.md` | Patrones de seguridad FastAPI + JWT + BCrypt |
+| `sec-ops:reports/index.json` | Inventario de reportes de dependencias (FASE 0) |
+| `sec-ops:SECOPS-DIRECTIVE.md` | Configuración de la rama directiva de seguridad |
