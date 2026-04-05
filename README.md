@@ -154,13 +154,14 @@ python -m secops t0
 python -m secops scan
 
 # Scan de una dependencia específica
-python -m secops scan --dep axios
+python -m secops scan --dep requests        # Python
+python -m secops scan --dep lodash          # JavaScript
 
 # Scan de una función específica
-python -m secops scan --dep axios --method buildFullPath
+python -m secops scan --dep cryptography --method Cipher
 
 # Consultar riesgo de un componente (T1, para orquestadores)
-python -m secops check --component axios
+python -m secops check --component requests
 
 # Output JSON para integración con otras herramientas
 python -m secops scan --json
