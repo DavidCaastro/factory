@@ -8,11 +8,11 @@
 
 | Tipo de módulo | Umbral requerido | Herramienta | Estado actual |
 |---|---|---|---|
-| Motores de análisis (taint, contract, delta) | 100% líneas + ramas | pytest-cov | ✗ FALLA — taint:88%, contract:86%, delta:96% |
-| Infraestructura (detect, fetcher, ast_engine) | ≥90% | pytest-cov | ✗ FALLA — detect:42%, fetcher:19%, ast_engine:85% |
-| Output Engine (report, impact, bridge) | ≥90% | pytest-cov | ✗ FALLA PARCIAL — report:25%, impact:13%, bridge:95% ✓ |
-| CLI | ≥85% | pytest-cov | ✗ FALLA — cli:62% |
-| Coverage gate en CI | ≥90% global | `--cov-fail-under=90` | ✗ FALLA — cobertura global: 66% (50/50 tests pasan) |
+| Motores de análisis (taint, contract, delta) | 100% líneas + ramas | pytest-cov | OBJ-006 en progreso — taint:85%→100%, contract:86%→100%, delta:97%→100% |
+| Infraestructura (detect, fetcher, ast_engine) | ≥90% | pytest-cov | OBJ-006 en progreso — detect:98% ✓, fetcher:86%→≥90%, ast_engine:85%→≥90% |
+| Output Engine (report, impact, bridge) | ≥90% | pytest-cov | OBJ-006 en progreso — report:97% ✓, impact:83%→≥90%, bridge:95% ✓ |
+| CLI | ≥85% | pytest-cov | cli:95% ✓ |
+| Coverage gate en CI | ≥90% global | `--cov-fail-under=90` | 88% global pre-OBJ-006 (150 tests, 0 fallos) — OBJ-006 target: ≥90% |
 
 > Medición: `pytest-cov` ejecutado 2026-04-04 sobre commit `28153f5`. 50 tests, 0 fallos de ejecución. Cobertura insuficiente en módulos con poca cobertura de red/IO (fetcher, impact, report) y en paths de error de los motores.
 
@@ -45,11 +45,11 @@ Los siguientes casos deben pasar antes de Gate 2. Son los criterios de aceptaci�
 
 | Métrica | Umbral | Herramienta | Estado actual |
 |---|---|---|---|
-| Errores de linting | 0 | ruff | NO VERIFICADO — pendiente ejecutar |
+| Errores de linting | 0 | ruff | CUMPLIDO — `ruff check secops/` sin errores (verificado 2026-04-05) |
 | Complejidad ciclomática por función | ≤10 | radon | NO VERIFICADO — pendiente ejecutar |
 | Longitud máxima de función | 50 líneas | revisión manual | NO VERIFICADO |
 | Dependencias de terceros en runtime | 0 | revisión de imports | CUMPLIDO — `pyproject.toml:dependencies=[]` |
-| Uso de `eval` / `exec` en código propio | 0 | grep | NO VERIFICADO — pendiente ejecutar |
+| Uso de `eval` / `exec` en código propio | 0 | grep | CUMPLIDO — solo como strings en listas de detección, no como llamadas (verificado 2026-04-05) |
 
 ---
 
@@ -73,8 +73,8 @@ Los siguientes casos deben pasar antes de Gate 2. Son los criterios de aceptaci�
 | Funciones públicas de cada módulo | Docstring con Args, Returns, Raises | CUMPLIDO — docstrings presentes en funciones públicas |
 | `SECOPS.md` | Protocolo completo: config, triggers, formato de output | CUMPLIDO — `secops/SECOPS.md` contiene config, triggers y formato |
 | Casos de test | Comentario explicando qué vulnerabilidad real reproduce | CUMPLIDO — tests documentan CVEs y casos de referencia |
-| `impact_analysis.jsonl` | Schema documentado con descripción de cada campo | NO VERIFICADO — pendiente revisar |
-| `payload.json` | Schema documentado con descripción de cada campo | NO VERIFICADO — pendiente revisar |
+| `impact_analysis.jsonl` | Schema documentado con descripción de cada campo | CUMPLIDO — campos documentados en RF-08 (functional.md) y SECOPS.md §Schemas de Output |
+| `payload.json` | Schema documentado con descripción de cada campo | CUMPLIDO — campos documentados en RF-09 (functional.md) y SECOPS.md §Schemas de Output |
 
 ---
 
@@ -90,5 +90,5 @@ Un objetivo se considera COMPLETADO solo cuando:
 6. 0 usos de `eval`/`exec` en código propio (verificado por grep)
 7. T0 <1s verificado por test de rendimiento
 8. Todos los gates PIV/OAC aprobados (Security + Audit + Standards + Coherence)
-9. Rama `sec-ops` creada y módulo operativo como standalone
+9. ~~Rama `sec-ops` creada y módulo operativo como standalone~~ → DIFERIDO a v1.0 (ver SECOPS.md §Roadmap — confirmado 2026-04-05)
 10. Merge a main con confirmación humana explícita

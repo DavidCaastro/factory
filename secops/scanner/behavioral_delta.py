@@ -8,9 +8,8 @@ Principal defensa contra supply chain attacks.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from pathlib import Path
 
-from .ast_engine import ASTNode, ParseResult
+from .ast_engine import ParseResult
 from .taint_analyzer import Finding
 
 # Operaciones privilegiadas: si aparecen como edges NUEVOS en v_nueva → anomalía

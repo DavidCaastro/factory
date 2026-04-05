@@ -92,8 +92,6 @@ def _fetch_javascript(name: str, version: str, dest: Path) -> Path:
 
     dist = data.get("dist", {})
     tarball_url = dist.get("tarball")
-    expected_sha = dist.get("integrity", "").replace("sha512-", "")  # npm usa sha512 en integrity
-
     if not tarball_url:
         raise FetchError(f"Sin tarball disponible para {name}@{version}")
 
